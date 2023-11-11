@@ -1,0 +1,82 @@
+cmake_minimum_required(VERSION 3.1)
+project(CannyEVIT VERSION 1.0)
+
+set(CMAKE_CXX_STANDARD 17)
+find_package(OpenCV 4.2 QUIET)
+include_directories(${OpenCV_INCLUDE_DIRS})
+if(OpenCV_FOUND)
+    add_definitions(-DOPENCV4_FOUND)
+else()
+    find_package(OpenCV 3 REQUIRED)
+    add_definitions(-DOPENCV3_FOUND)
+endif()
+
+add_definitions(-D_LOG_ALL)
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIRS})
+
+find_package(Pangolin REQUIRED)
+include_directories(${Pangolin_INCLUDE_DIRS})
+
+find_package(Ceres REQUIRED)
+include_directories(${CERES_INCLUDE_DIRS})
+
+#find_package(g2o REQUIRED)
+#include_directories(${G2O_INCLUDE_DIRS})
+
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+set(SRC_FILE
+        src/ImuIntegration.cpp
+        src/System.cpp
+        src/easylogging++.cc
+        src/EventCamera.cpp
+        src/TimeSurface.cpp
+        src/Frame.cpp
+        src/Util.cpp
+        src/Optimzer.cpp
+)
+
+
+set(INCLUDE_FILE
+        include/ImuIntegration.h
+        include/Type.h
+        include/Util.h
+        include/System.h
+        include/easylogging++.h
+        include/EventCamera.h
+        include/TimeSurface.h
+        include/Frame.h
+        include/Optimizer.h
+)
+
+# library
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+add_library(EVIT SHARED ${SRC_FILE} ${INCLUDE_FILE})
+target_link_libraries(EVIT
+        ${OpenCV_LIBRARIES}
+        ${PCL_LIBRARIES}
+        ${Pangolin_LIBRARIES}
+        ${CERES_LIBRARIES}
+        )
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+
+add_executable(test_system
+        example/test/test_system_read_param.cpp
+)
+target_link_libraries(test_system
+        EVIT
+        )
+
+add_executable(test_cam
+        example/test/test_cam.cpp
+)
+target_link_libraries(test_cam
+        EVIT
+)
+
+
+
