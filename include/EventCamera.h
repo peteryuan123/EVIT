@@ -45,7 +45,7 @@ namespace CannyEVIT
         cv::Mat distortion_parameter_;
         DistortionModel distortion_type_;
         cv::Mat undistortion_map1_, undistortion_map2_;
-        Eigen::MatrixXd undistort_recitify_mask_;
+        Eigen::MatrixXi undistort_recitify_mask_;
 
         Eigen::Matrix4d Tbc_;
         Eigen::Matrix4d Tcb_;
@@ -58,7 +58,7 @@ namespace CannyEVIT
             return P_;
         }
 
-        inline Eigen::MatrixXd& getUndistortRectifyMask(){
+        inline Eigen::MatrixXi& getUndistortRectifyMask(){
             return undistort_recitify_mask_;
         }
 

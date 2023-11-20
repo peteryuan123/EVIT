@@ -37,6 +37,14 @@ set(SRC_FILE
         src/Frame.cpp
         src/Util.cpp
         src/Optimzer.cpp
+
+        src/CeresFactor/ImuFactor.cpp
+        src/CeresFactor/EventFactor.cpp
+        src/CeresFactor/EventAutoDIff.cpp
+
+        src/Manifold/PoseLocalParameterization.cpp
+
+        src/EigenOptimization/Problem/EventProblem.cpp
 )
 
 
@@ -50,6 +58,15 @@ set(INCLUDE_FILE
         include/TimeSurface.h
         include/Frame.h
         include/Optimizer.h
+
+        include/CeresFactor/ImuFactor.h
+        include/CeresFactor/EventFactor.h
+        include/CeresFactor/EventAutoDiffFactor.h
+
+        include/Manifold/PoseLocalParameterization.h
+
+        include/EigenOptimization/Problem/EventProblem.h
+        include/EigenOptimization/Factor/ResidualEventItem.h
 )
 
 # library

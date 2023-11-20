@@ -14,12 +14,13 @@ using namespace CannyEVIT;
 
 System::System(const std::string &config_path):
 cloud_(new std::vector<Point>()), event_cam_(nullptr), is_system_start_(true),
-is_first_frame_(true), imu_t0_(0.0), acc0_(Eigen::Vector3d::Zero()), gyr0_(Eigen::Vector3d::Zero())
+is_first_frame_(true), imu_t0_(0.0), acc0_(Eigen::Vector3d::Zero()), gyr0_(Eigen::Vector3d::Zero()), optimizer_(nullptr)
 {
     readParam(config_path);
     loadPointCloud(cloud_path_);
 
     event_cam_.reset(new EventCamera(config_path));
+    optimizer_.reset(new Optimizer(config_path, event_cam_));
     TimeSurface::initTimeSurface(event_cam_);
     IntegrationBase::setCalib(config_path);
     thread_process_.reset(new std::thread(&System::process, this));
@@ -233,6 +234,9 @@ void System::process()
         Eigen::Quaterniond last_q = last_frame->Qwb();
         Eigen::Vector3d last_t = last_frame->twb();
         Eigen::Vector3d last_v = last_frame->velocity();
+        Eigen::Vector3d last_ba = last_frame->Ba();
+        Eigen::Vector3d last_bg = last_frame->Bg();
+
         for (auto imu_iter = data.imuData.begin(); imu_iter != data.imuData.end(); imu_iter++)
         {
             double dt = imu_iter->time_stamp_ - imu_t0_;
@@ -248,15 +252,30 @@ void System::process()
         Frame::Ptr current_frame(new Frame(current_time_surface_observation, current_integration, event_cam_));
         current_frame->set_Twb(last_q, last_t);
         current_frame->set_velocity(last_v);
+        current_frame->set_Ba(last_ba);
+        current_frame->set_Bg(last_bg);
 
-        LOG(INFO) << "current frame:" << current_frame_time;
-        current_frame->time_surface_observation_->drawCloud(cloud_, current_frame->Twc(), "current_frame");
-        cv::waitKey(10);
+//        LOG(INFO) << "current frame:" << current_frame_time;
+//        LOG(INFO) << "Last pose:\n" << current_frame->Twb();
+//        current_frame->time_surface_observation_->drawCloud(cloud_, current_frame->Twc(), "prev_frame");
+//        current_frame->time_surface_observation_->drawCloud(cloud_, last_frame->Twc(), "last_frame");
+//        // Optimize here
+//        optimizer_->OptimizeEventProblemCeres(cloud_, current_frame);
+//        current_frame->time_surface_observation_->drawCloud(cloud_, current_frame->Twc(), "after_frame");
+//        LOG(INFO) << "Current pose:\n" << current_frame->Twb();
 
         sliding_window_.push_back(current_frame);
+        optimizer_->OptimizeSlidingWindowProblemCeres(cloud_, sliding_window_);
+
+        for (int i = 0; i < sliding_window_.size(); i++)
+        {
+            sliding_window_[i]->time_surface_observation_->drawCloud(cloud_, sliding_window_[i]->Twc(), std::to_string(i));
+        }
+        cv::waitKey(10);
+
         if (sliding_window_.size() > window_size_)
         {
-            history_frames_.emplace_back(std::move(sliding_window_.front()));
+//            history_frames_.emplace_back(std::move(sliding_window_.front()));
             sliding_window_.pop_front();
         }
     }

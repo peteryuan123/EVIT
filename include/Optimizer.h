@@ -7,7 +7,10 @@
 
 #include <memory>
 #include <opencv2/opencv.hpp>
+#include "easylogging++.h"
 #include "EventCamera.h"
+#include "Frame.h"
+#include "Type.h"
 
 namespace CannyEVIT
 {
@@ -17,6 +20,9 @@ namespace CannyEVIT
         typedef std::shared_ptr<Optimizer> Ptr;
 
         Optimizer(const std::string& config_path, EventCamera::Ptr event_camera);
+
+        bool OptimizeEventProblemCeres(pCloud cloud, Frame::Ptr frame);
+        bool OptimizeSlidingWindowProblemCeres(pCloud cloud, std::deque<Frame::Ptr> window);
 
     public:
         EventCamera::Ptr event_camera_;

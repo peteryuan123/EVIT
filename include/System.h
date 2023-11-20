@@ -13,6 +13,7 @@
 #include "EventCamera.h"
 #include "Type.h"
 #include "Frame.h"
+#include "Optimizer.h"
 
 namespace CannyEVIT{
 
@@ -77,6 +78,7 @@ namespace CannyEVIT{
 
 
     public:
+        Optimizer::Ptr optimizer_;
         std::shared_ptr<std::thread> thread_process_;
     };
 

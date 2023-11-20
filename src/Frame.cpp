@@ -80,7 +80,7 @@ void Frame::set_Twb(const Eigen::Matrix4d &Twb)
 void Frame::set_Twb(const Eigen::Matrix3d &Rwb, const Eigen::Vector3d &twb)
 {
     Twb_.block<3, 3>(0, 0) = Rwb;
-    Twb_.block<3, 1>(0, 3) = twb_;
+    Twb_.block<3, 1>(0, 3) = twb;
     Qwb_ = Eigen::Quaterniond(Rwb);
     Qwb_.normalize();
     twb_ = twb;
@@ -88,10 +88,10 @@ void Frame::set_Twb(const Eigen::Matrix3d &Rwb, const Eigen::Vector3d &twb)
 
 void Frame::set_Twb(const Eigen::Quaterniond &Qwb, const Eigen::Vector3d &twb)
 {
-    Twb_.block<3, 3>(0, 0) = Qwb.toRotationMatrix();
-    Twb_.block<3, 1>(0, 3) = twb_;
     Qwb_ = Qwb;
     Qwb_.normalize();
+    Twb_.block<3, 3>(0, 0) = Qwb_.toRotationMatrix();
+    Twb_.block<3, 1>(0, 3) = twb;
     twb_ = twb;
 }
 
@@ -104,9 +104,9 @@ void Frame::set_Rwb(const Eigen::Matrix3d &Rwb)
 
 void Frame::set_Rwb(const Eigen::Quaterniond &Qwb)
 {
-    Twb_.block<3, 3>(0, 0) = Qwb.toRotationMatrix();
     Qwb_ = Qwb;
     Qwb_.normalize();
+    Twb_.block<3, 3>(0, 0) = Qwb_.toRotationMatrix();
 }
 
 void Frame::set_twb(const Eigen::Vector3d &twb)

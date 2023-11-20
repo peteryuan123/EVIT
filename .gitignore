@@ -6,3 +6,5 @@ devel/
 lib/
 .idea/
 .vscode/
+log/
+*.log
