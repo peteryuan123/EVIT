@@ -6,9 +6,10 @@
 using namespace CannyEVIT;
 
 Frame::Frame(TimeSurface::Ptr time_surface_observation, IntegrationBase::Ptr integration, EventCamera::Ptr event_camera)
-: time_surface_observation_(time_surface_observation), integration_(integration), event_camera_(event_camera),
-Qwb_(Eigen::Quaterniond::Identity()), twb_(Eigen::Vector3d::Zero()), Twb_(Eigen::Matrix4d::Identity()),
-velocity_(Eigen::Vector3d::Zero()), acc_bias_(Eigen::Vector3d::Zero()), gyr_bias_(Eigen::Vector3d::Zero())
+: time_stamp_(time_surface_observation->time_stamp_), time_surface_observation_(time_surface_observation),
+integration_(integration), event_camera_(event_camera), Qwb_(Eigen::Quaterniond::Identity()), twb_(Eigen::Vector3d::Zero()),
+Twb_(Eigen::Matrix4d::Identity()), velocity_(Eigen::Vector3d::Zero()), acc_bias_(Eigen::Vector3d::Zero()),
+gyr_bias_(Eigen::Vector3d::Zero())
 {
 }
 
@@ -69,6 +70,17 @@ Eigen::Vector3d Frame::Bg()
 }
 
 // setter
+
+void Frame::set_integration(const IntegrationBase::Ptr& integration)
+{
+    integration_ = integration;
+}
+
+void Frame::set_timeStamp(double time_stamp)
+{
+    time_stamp_ = time_stamp;
+}
+
 void Frame::set_Twb(const Eigen::Matrix4d &Twb)
 {
     Twb_ = Twb;

@@ -19,6 +19,11 @@ namespace CannyEVIT{
 
     class System
     {
+        enum State{
+            Init,
+            Tracking,
+        };
+
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -42,6 +47,12 @@ namespace CannyEVIT{
                             Eigen::Quaterniond& Q, Eigen::Vector3d& t, Eigen::Vector3d& v);
 
         void loadPointCloud(const std::string& cloud_path);
+
+        Frame::Ptr localizeFrameOnHighFreq(double target_timestamp,
+                                           std::vector<EventMsg>::iterator& iter,
+                                           const std::vector<EventMsg>::iterator& end,
+                                           Frame::Ptr last_frame, double time_interval);
+
     public:
         pCloud cloud_;
         std::deque<EventMsg> event_deque_;
@@ -55,6 +66,7 @@ namespace CannyEVIT{
         // for state
         bool is_system_start_;
         bool is_first_frame_;
+        State state_;
 
         // frame
         double imu_t0_;
@@ -72,6 +84,11 @@ namespace CannyEVIT{
         double timeSurface_decay_factor_;
         int imu_num_for_frame_;
         int window_size_;
+
+        int imu_num_for_init_frame_;
+        int frame_num_for_init_;
+        int init_freq_;
+
         Eigen::Matrix3d R0_;
         Eigen::Vector3d t0_;
         Eigen::Vector3d V0_;

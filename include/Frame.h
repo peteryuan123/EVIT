@@ -54,6 +54,9 @@ namespace CannyEVIT
         Eigen::Vector3d Bg();
 
         //setter
+
+        void set_integration(const IntegrationBase::Ptr& integration);
+        void set_timeStamp(double time_stamp);
         void set_Twb(const Eigen::Matrix4d& Twb);
         void set_Twb(const Eigen::Matrix3d& Rwb, const Eigen::Vector3d& twb);
         void set_Twb(const Eigen::Quaterniond & Qwb, const Eigen::Vector3d& twb);

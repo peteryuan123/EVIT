@@ -23,6 +23,8 @@ namespace CannyEVIT
 
         bool OptimizeEventProblemCeres(pCloud cloud, Frame::Ptr frame);
         bool OptimizeSlidingWindowProblemCeres(pCloud cloud, std::deque<Frame::Ptr> window);
+        bool OptimizeVelovityBias(const std::vector<Frame::Ptr>& window);
+        bool initVelocityBias(const std::vector<Frame::Ptr>& window);
 
     public:
         EventCamera::Ptr event_camera_;

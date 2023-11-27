@@ -11,8 +11,8 @@ namespace CannyEVIT
 {
     class PoseLocalManifold: public ceres::Manifold
     {
-        virtual int AmbientSize() const;
-        virtual int TangentSize() const;
+        int AmbientSize() const override;
+        int TangentSize() const override;
         bool Plus(const double *x, const double *delta, double *x_plus_delta) const override;
         bool PlusJacobian(const double* x, double* jacobian) const override;
         bool Minus(const double *y, const double *x, double *y_minus_x) const override;
