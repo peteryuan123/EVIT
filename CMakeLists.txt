@@ -31,7 +31,6 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 set(SRC_FILE
         src/ImuIntegration.cpp
         src/System.cpp
-        src/easylogging++.cc
         src/EventCamera.cpp
         src/TimeSurface.cpp
         src/Frame.cpp
@@ -87,6 +86,14 @@ add_executable(test_system
 target_link_libraries(test_system
         EVIT
         )
+
+add_executable(test_normal
+        example/test/test_normal.cpp
+)
+target_link_libraries(test_normal
+        EVIT
+)
+
 
 add_executable(test_cam
         example/test/test_cam.cpp

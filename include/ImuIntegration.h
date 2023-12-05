@@ -3,7 +3,6 @@
 
 #include <opencv2/opencv.hpp>
 #include "Util.h"
-#include "easylogging++.h"
 
 namespace CannyEVIT
 {

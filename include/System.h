@@ -82,11 +82,11 @@ namespace CannyEVIT{
         std::string result_path_;
         double start_time_;
         double timeSurface_decay_factor_;
-        int imu_num_for_frame_;
-        int window_size_;
+        size_t imu_num_for_frame_;
+        size_t window_size_;
 
-        int imu_num_for_init_frame_;
-        int frame_num_for_init_;
+        size_t imu_num_for_init_frame_;
+        size_t frame_num_for_init_;
         int init_freq_;
 
         Eigen::Matrix3d R0_;

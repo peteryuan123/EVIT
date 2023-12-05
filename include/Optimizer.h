@@ -7,7 +7,6 @@
 
 #include <memory>
 #include <opencv2/opencv.hpp>
-#include "easylogging++.h"
 #include "EventCamera.h"
 #include "Frame.h"
 #include "Type.h"
@@ -23,6 +22,8 @@ namespace CannyEVIT
 
         bool OptimizeEventProblemCeres(pCloud cloud, Frame::Ptr frame);
         bool OptimizeSlidingWindowProblemCeres(pCloud cloud, std::deque<Frame::Ptr> window);
+        bool OptimizeSlidingWindowProblemCeresBatch(pCloud cloud, std::deque<Frame::Ptr> window);
+
         bool OptimizeVelovityBias(const std::vector<Frame::Ptr>& window);
         bool initVelocityBias(const std::vector<Frame::Ptr>& window);
 

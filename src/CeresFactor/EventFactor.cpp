@@ -4,6 +4,8 @@
 
 #include "CeresFactor/EventFactor.h"
 
+#include <utility>
+
 using namespace CannyEVIT;
 
 EventFactor::EventFactor(const CannyEVIT::Point &p_w, const TimeSurface::Ptr &time_surface, int wx, int wy)

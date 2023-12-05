@@ -22,12 +22,20 @@ namespace CannyEVIT
         typedef std::shared_ptr<TimeSurface> Ptr;
         typedef std::shared_ptr<TimeSurface const> ConstPtr;
 
+        enum PolarType
+        {
+            NEUTRAL,
+            POSITIVE,
+            NEGATIVE
+        };
+
         TimeSurface(double time_stamp, double decay_fator);
 
         void processTimeSurface(const cv::Mat& history_event, double time_stamp, double decay_factor,
                                 cv::Mat& time_surface, Eigen::MatrixXd& inverse_time_surface,
                                 Eigen::MatrixXd& inverse_gradX, Eigen::MatrixXd&  inverse_gradY);
-        void drawCloud(pCloud cloud, const Eigen::Matrix4d& Twc, const std::string& window_name);
+        void drawCloud(pCloud cloud, const Eigen::Matrix4d& Twc, const std::string& window_name,
+                       PolarType polarType = NEUTRAL, bool showGrad = false);
 
         // for compute residual
         bool isValidPatch(Eigen::Vector2d &patchCentreCoord, Eigen::MatrixXi &mask, size_t wx, size_t wy);
@@ -59,7 +67,7 @@ namespace CannyEVIT
         Eigen::MatrixXd gradY_inverse_time_surface_negative_;
 
     public:
-        static void initTimeSurface(EventCamera::Ptr event_cam);
+        static void initTimeSurface(const EventCamera::Ptr& event_cam);
         static void updateHistoryEvent(EventMsg msg);
         static EventCamera::Ptr event_cam_;
         static cv::Mat history_event_;

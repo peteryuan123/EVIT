@@ -69,7 +69,7 @@ int EventProblemLM::df(const Eigen::Matrix<double, 6, 1> &x, Eigen::MatrixXd &fj
 
     }
 
-
+    return 0;
 }
 
 void EventProblemLM::addPerturbation(Eigen::Quaterniond &Qwb, Eigen::Vector3d &twb,

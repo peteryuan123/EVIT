@@ -2,7 +2,7 @@
 // Created by mpl on 23-11-10.
 //
 #include "ImuIntegration.h"
-
+#include <glog/logging.h>
 using namespace CannyEVIT;
 
 double IntegrationBase::ACC_N = 0.0;

@@ -3,7 +3,6 @@
 //
 
 #include "CeresFactor/ImuFactor.h"
-#include "easylogging++.h"
 
 using namespace CannyEVIT;
 

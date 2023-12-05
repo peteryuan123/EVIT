@@ -28,9 +28,13 @@ time_stamp_(time_stamp), decay_factor_(decay_factor)
                        gradX_inverse_time_surface_negative_, gradY_inverse_time_surface_negative_);
 }
 
-void TimeSurface::processTimeSurface(const cv::Mat &history_event, double time_stamp, double decay_factor,
-                                     cv::Mat &time_surface, Eigen::MatrixXd &inverse_time_surface,
-                                     Eigen::MatrixXd &inverse_gradX, Eigen::MatrixXd &inverse_gradY)
+void TimeSurface::processTimeSurface(const cv::Mat &history_event,
+                                     double time_stamp,
+                                     double decay_factor,
+                                     cv::Mat &time_surface,
+                                     Eigen::MatrixXd &inverse_time_surface,
+                                     Eigen::MatrixXd &inverse_gradX,
+                                     Eigen::MatrixXd &inverse_gradY)
 {
     cv::exp((history_event - time_stamp) / decay_factor, time_surface);
     event_cam_->undistortImage(time_surface, time_surface);
@@ -49,9 +53,25 @@ void TimeSurface::processTimeSurface(const cv::Mat &history_event, double time_s
     cv::cv2eigen(inverse_gradY_cv, inverse_gradY);
 }
 
-void TimeSurface::drawCloud(CannyEVIT::pCloud cloud, const Eigen::Matrix4d &Twc, const std::string &window_name)
+
+void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
+                            const Eigen::Matrix4d &Twc,
+                            const std::string &window_name,
+                            PolarType polarType,
+                            bool showGrad)
 {
-    cv::Mat time_surface_clone = time_surface_.clone();
+    cv::Mat time_surface_clone;
+    switch (polarType) {
+        case NEUTRAL:
+            time_surface_clone = time_surface_.clone();
+            break;
+        case POSITIVE:
+            time_surface_clone = time_surface_positive_.clone();
+            break;
+        case NEGATIVE:
+            time_surface_clone = time_surface_negative_.clone();
+            break;
+    }
     time_surface_clone.convertTo(time_surface_clone, CV_8UC1);
     cv::cvtColor(time_surface_clone, time_surface_clone, cv::COLOR_GRAY2BGR);
 
@@ -62,11 +82,27 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud, const Eigen::Matrix4d &Twc,
         Point pt = cloud->at(i);
         Eigen::Vector3d p(pt.x, pt.y, pt.z);
         Eigen::Vector3d pc = Rwc.transpose() * (p - twc);
-        Eigen::Vector2d p2d = event_cam_->World2Cam(pc);
-        cv::Point cvpt(p2d.x(), p2d.y());
+        Eigen::Vector2d p_2d = event_cam_->World2Cam(pc);
+        cv::Point cvpt(p_2d.x(), p_2d.y());
+
+        if (showGrad)
+        {
+            Eigen::Vector3d p_normal(pt.x_normal_, pt.y_normal_, pt.z_normal_);
+            Eigen::Vector3d p_normal_c = Rwc.transpose() * p_normal;
+            Eigen::Vector3d p_normal_end_c = pc + p_normal_c;
+            Eigen::Vector2d p_normal_end_2d = event_cam_->World2Cam(p_normal_end_c);
+            Eigen::Vector2d direction = p_normal_end_2d - p_2d;
+            direction.normalize();
+            direction = direction * 10;
+            p_normal_end_2d = p_2d + direction;
+            cv::Point cv_normal2d_end(p_normal_end_2d.x(), p_normal_end_2d.y());
+            cv::line(time_surface_clone, cvpt, cv_normal2d_end, CV_RGB(0, 255, 0));
+        }
         cv::circle(time_surface_clone, cvpt, 0, CV_RGB(255, 0, 0), cv::FILLED);
     }
     cv::imshow(window_name, time_surface_clone);
+
+
 }
 
 bool TimeSurface::isValidPatch(Eigen::Vector2d &patchCentreCoord, Eigen::MatrixXi &mask, size_t wx, size_t wy)
@@ -205,7 +241,7 @@ Eigen::MatrixXd TimeSurface::df(const CannyEVIT::Point &p_w, const Eigen::Quater
 }
 
 // static function
-void TimeSurface::initTimeSurface(EventCamera::Ptr event_cam)
+void TimeSurface::initTimeSurface(const EventCamera::Ptr& event_cam)
 {
     event_cam_ = event_cam;
     history_event_ = cv::Mat(event_cam->height(), event_cam->width(), CV_64F, 0.0);

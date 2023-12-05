@@ -3,13 +3,12 @@
 //
 
 #include "System.h"
-#include "easylogging++.h"
 #include "TimeSurface.h"
 #include "ImuIntegration.h"
 #include "Frame.h"
+#include <fstream>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
-INITIALIZE_EASYLOGGINGPP
 using namespace CannyEVIT;
 
 System::System(const std::string &config_path):
@@ -17,6 +16,7 @@ cloud_(new std::vector<Point>()), event_cam_(nullptr), is_system_start_(true), i
 state_(State::Init), imu_t0_(0.0), acc0_(Eigen::Vector3d::Zero()), gyr0_(Eigen::Vector3d::Zero()),
 imu_num_for_init_frame_(0), frame_num_for_init_(0), init_freq_(0), optimizer_(nullptr)
 {
+    google::InitGoogleLogging("CannyEVIT");
     readParam(config_path);
     loadPointCloud(cloud_path_);
 
@@ -35,12 +35,6 @@ System::~System()
 
 void System::readParam(const std::string &config_path)
 {
-    el::Configurations conf("/home/mpl/code/EVIT_NEW/config/logConfig.conf");
-    el::Loggers::reconfigureLogger("default", conf);
-    el::Loggers::reconfigureAllLoggers(conf);
-    el::Loggers::addFlag(el::LoggingFlag::NewLineForContainer);
-    el::Loggers::addFlag(el::LoggingFlag::AutoSpacing);
-    el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
 
     cv::FileStorage fs(config_path, cv::FileStorage::READ);
     LOG(INFO) << "-------------- SYSTEM --------------";
@@ -70,11 +64,11 @@ void System::readParam(const std::string &config_path)
 
         if (fs["imu_num_for_frame"].isNone())
             LOG(ERROR) << "config: imu_num_for_frame is not set";
-        imu_num_for_frame_ = fs["imu_num_for_frame"];
+        imu_num_for_frame_ = static_cast<int>(fs["imu_num_for_frame"]);
 
         if (fs["window_size"].isNone())
             LOG(ERROR) << "config: window_size is not set";
-        window_size_ = fs["window_size"];
+        window_size_ = static_cast<int>(fs["window_size"]);
 
         if (fs["R0"].isNone())
             LOG(ERROR) << "config: R0 is not set";
@@ -93,11 +87,11 @@ void System::readParam(const std::string &config_path)
 
         if (fs["frame_num_for_init"].isNone())
             LOG(ERROR) << "config: frame_num_for_init is not set";
-        frame_num_for_init_ = fs["frame_num_for_init"];
+        frame_num_for_init_ = static_cast<int>(fs["frame_num_for_init"]);
 
         if (fs["imu_num_for_init_frame"].isNone())
             LOG(ERROR) << "config: imu_num_for_init_frame is not set";
-        imu_num_for_init_frame_ = fs["imu_num_for_init_frame"];
+        imu_num_for_init_frame_ = static_cast<int>(fs["imu_num_for_init_frame"]);
 
         if (fs["init_freq"].isNone())
             LOG(ERROR) << "config: init_freq is not set";
@@ -175,13 +169,13 @@ bool System::getMeasurement(FrameData& data)
     switch (state_) {
         case Init:
         {
-            int imu_num_for_init = imu_num_for_init_frame_ * frame_num_for_init_;
+            size_t imu_num_for_init = imu_num_for_init_frame_ * frame_num_for_init_;
             if (event_deque_.empty() || imu_deque_.size() < imu_num_for_init)
                 return false;
             if (event_deque_.back().time_stamp_ < imu_deque_[imu_num_for_init-1].time_stamp_)
                 return false;
 
-            for (int i = 0; i < imu_num_for_init; i++)
+            for (size_t i = 0; i < imu_num_for_init; i++)
             {
                 data.imuData.emplace_back(imu_deque_.front());
                 imu_deque_.pop_front();
@@ -200,7 +194,7 @@ bool System::getMeasurement(FrameData& data)
                 event_deque_.back().time_stamp_ < imu_deque_[imu_num_for_frame_ - 1].time_stamp_)
                 return false;
 
-            for (int i = 0; i < imu_num_for_frame_; i++)
+            for (size_t i = 0; i < imu_num_for_frame_; i++)
             {
                 data.imuData.emplace_back(imu_deque_.front());
                 imu_deque_.pop_front();
@@ -231,8 +225,8 @@ void System::process()
             case Init:
             {
                 std::vector<Frame::Ptr> initial_list;
-                LOG(INFO) << "event back stamp:" << data.eventData.back().time_stamp_ ;
-                LOG(INFO) << "imu back stamp:" << data.imuData.back().time_stamp_ ;
+                LOG(INFO) << std::fixed << "event back stamp:" << data.eventData.back().time_stamp_ ;
+                LOG(INFO) << std::fixed << "imu back stamp:" << data.imuData.back().time_stamp_ ;
 
                 // localize start frame
                 auto event_it = data.eventData.begin();
@@ -246,11 +240,13 @@ void System::process()
                 Frame::Ptr first_frame(new Frame(first_time_surface_observation, nullptr, event_cam_));
                 first_frame->set_velocity(V0_);
                 first_frame->set_Twb(R0_, t0_);
-                first_frame->time_surface_observation_->drawCloud(cloud_, first_frame->Twc(), "before");
+                first_frame->time_surface_observation_->drawCloud(cloud_, first_frame->Twc(), "before", TimeSurface::PolarType::POSITIVE, true);
                 optimizer_->OptimizeEventProblemCeres(cloud_, first_frame);
                 Frame::Ptr last_frame = first_frame;
-                first_frame->time_surface_observation_->drawCloud(cloud_, first_frame->Twc(), "first frame");
-                cv::waitKey(0);
+//                first_frame->time_surface_observation_->drawCloud(cloud_, Eigen::Matrix4d::Identity(), "first frame", TimeSurface::PolarType::POSITIVE, false);
+//                first_frame->time_surface_observation_->drawCloud(cloud_, Eigen::Matrix4d::Identity(), "first frame p", TimeSurface::PolarType::NEUTRAL, false);
+//                first_frame->time_surface_observation_->drawCloud(cloud_, Eigen::Matrix4d::Identity(), "first frame n", TimeSurface::PolarType::NEGATIVE, false);
+//                cv::waitKey(0);
 
                 double time_interval = 1.0 / static_cast<double>(init_freq_);
                 // localize first frame, first initial frame does not need integration
@@ -265,12 +261,12 @@ void System::process()
                 initial_list.push_back(last_frame);
 
                 // localize on each frame
-                for (int i = 0; i < frame_num_for_init_; i++)
+                for (size_t i = 0; i < frame_num_for_init_; i++)
                 {
 
                     // integrate imu firstly
                     IntegrationBase::Ptr target_integration(new IntegrationBase(acc0_, gyr0_, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()));
-                    for (int j = 0; j < imu_num_for_init_frame_; j++)
+                    for (size_t j = 0; j < imu_num_for_init_frame_; j++)
                     {
                         int index = i * imu_num_for_init_frame_ + j;
                         std::cout << index << std::endl;
@@ -291,8 +287,8 @@ void System::process()
                 }
 
                 // TODO: MAY REPLACE AS LINEAR SOLVER
-//                optimizer_->OptimizeVelovityBias(initial_list);
-                optimizer_->initVelocityBias(initial_list);
+                optimizer_->OptimizeVelovityBias(initial_list);
+//                optimizer_->initVelocityBias(initial_list);
                 for (auto iter = initial_list.rbegin(); iter != initial_list.rend(); iter++)
                 {
                     (*iter)->integration_->repropagate((*iter)->Ba(), (*iter)->Bg());
@@ -355,9 +351,10 @@ void System::process()
 //                LOG(INFO) << "Current pose:\n" << current_frame->Twb();
 
                 sliding_window_.push_back(current_frame);
-                optimizer_->OptimizeSlidingWindowProblemCeres(cloud_, sliding_window_);
+//                optimizer_->OptimizeSlidingWindowProblemCeres(cloud_, sliding_window_);
+                optimizer_->OptimizeSlidingWindowProblemCeresBatch(cloud_, sliding_window_);
 
-                for (int i = 0; i < sliding_window_.size(); i++)
+                for (size_t i = 0; i < sliding_window_.size(); i++)
                 {
                     sliding_window_[i]->integration_->repropagate(sliding_window_[i]->Ba(), sliding_window_[i]->Bg());
                     sliding_window_[i]->time_surface_observation_->drawCloud(cloud_, sliding_window_[i]->Twc(), std::to_string(i));

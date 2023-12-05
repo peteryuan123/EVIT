@@ -3,7 +3,7 @@
 //
 
 #include "EventCamera.h"
-#include "easylogging++.h"
+#include <glog/logging.h>
 #include <opencv2/core/eigen.hpp>
 #include <Eigen/Geometry>
 
