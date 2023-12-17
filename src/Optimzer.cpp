@@ -10,6 +10,7 @@
 #include "Manifold/PoseLocalManifold.h"
 #include <ceres/loss_function.h>
 #include <random>
+#include <tuple>
 #include <utility>
 
 using namespace CannyEVIT;
@@ -33,6 +34,7 @@ Optimizer::Optimizer(const std::string &config_path, EventCamera::Ptr event_came
 
     LOG(INFO) << "patch_size_X:" << patch_size_X_;
     LOG(INFO) << "patch_size_Y:" << patch_size_Y_;
+
 }
 
 bool Optimizer::OptimizeEventProblemCeres(CannyEVIT::pCloud cloud, Frame::Ptr frame)
@@ -205,14 +207,27 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
     std::uniform_int_distribution<size_t> dist(0, cloud->size() - 1);
     while (set_samples.size() < optimized_points_num)
         set_samples.insert(dist(gen));
+    int positive_num = 0;
+    int negative_num = 0;
     for (auto iter = set_samples.begin(); iter != set_samples.end(); iter++)
     {
         for (size_t i = 0; i < window_size; i++)
         {
+            std::tuple<TimeSurface::PolarType, double> res =  TimeSurface::determinePolarAndWeight(cloud->at(*iter),
+                                                                                                   window[i]->last_frame_->Twb(),
+                                                                                                   window[i]->Twb());
+            res = std::make_tuple(TimeSurface::PolarType::NEUTRAL, 1);
+            if (std::get<0>(res) == TimeSurface::PolarType::POSITIVE)
+                positive_num++;
+            else if (std::get<0>(res) == TimeSurface::PolarType::NEGATIVE)
+                negative_num++;
             event_factors.emplace_back(new EventFactor(cloud->at(*iter),
                                                        window[i]->time_surface_observation_,
-                                                       patch_size_X_, patch_size_Y_));
+                                                       patch_size_X_, patch_size_Y_,
+                                                       std::get<0>(res), std::get<1>(res)));
         }
+        LOG(INFO) << "positive_num:" << positive_num;
+        LOG(INFO) << "negative_num:" << negative_num;
     }
 
     // add imu residuals
@@ -237,7 +252,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
     }
 
 
-    size_t max_iteration = 40;
+    size_t max_iteration = 50;
     size_t cur_iteration = 0;
     ceres::Solver::Options options;
     //    options.check_gradients = true;
@@ -247,15 +262,15 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
     options.max_num_iterations = 1;
     ceres::TerminationType cur_state = ceres::TerminationType::NO_CONVERGENCE;
     // batch Optimization
-    ceres::Solver::Summary summary;
     while(cur_state != ceres::TerminationType::CONVERGENCE && cur_iteration < max_iteration)
     {
+        ceres::Solver::Summary summary;
         size_t cur_problem_index = cur_iteration % problem_num;
         ceres::Solve(options, &problem_list[cur_problem_index], &summary);
         cur_state = summary.termination_type;
         cur_iteration++;
+        std::cout << summary.BriefReport() << std::endl;
     }
-    std::cout << summary.BriefReport() << std::endl;
     std::cout << cur_iteration << std::endl;
     for (size_t i = 0; i < window_size; i++)
     {

@@ -44,17 +44,17 @@ namespace CannyEVIT {
         typedef std::shared_ptr<Point> Ptr;
         typedef std::shared_ptr<Point const> ConstPtr;
 
-        Point(double x, double y, double z, double x_normal, double y_normal, double z_normal):
-                x(x), y(y), z(z), x_normal_(x_normal), y_normal_(y_normal), z_normal_(z_normal)
+        Point(double x, double y, double z, double x_gradient, double y_gradient, double z_gradient):
+                x(x), y(y), z(z), x_gradient_(x_gradient), y_gradient_(y_gradient), z_gradient_(z_gradient)
         {};
 
         double x;
         double y;
         double z;
 
-        double x_normal_;//梯度相关
-        double y_normal_;
-        double z_normal_;
+        double x_gradient_;//梯度相关
+        double y_gradient_;
+        double z_gradient_;
     };
 
     struct FrameData

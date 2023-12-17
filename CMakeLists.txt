@@ -43,7 +43,11 @@ set(SRC_FILE
 
         src/Manifold/PoseLocalParameterization.cpp
         src/Manifold/PoseLocalManifold.cpp
+
         src/EigenOptimization/Problem/EventProblem.cpp
+
+        src/imageProcessing/distanceField.cpp
+
 )
 
 
@@ -52,7 +56,6 @@ set(INCLUDE_FILE
         include/Type.h
         include/Util.h
         include/System.h
-        include/easylogging++.h
         include/EventCamera.h
         include/TimeSurface.h
         include/Frame.h
@@ -64,8 +67,11 @@ set(INCLUDE_FILE
 
         include/Manifold/PoseLocalParameterization.h
         include/Manifold/PoseLocalManifold.h
+
         include/EigenOptimization/Problem/EventProblem.h
         include/EigenOptimization/Factor/ResidualEventItem.h
+
+        include/imageProcessing/distanceField.h
 )
 
 # library

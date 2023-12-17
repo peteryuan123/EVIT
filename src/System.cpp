@@ -96,9 +96,16 @@ void System::readParam(const std::string &config_path)
         if (fs["init_freq"].isNone())
             LOG(ERROR) << "config: init_freq is not set";
         init_freq_ = fs["init_freq"];
+
+        if (!fs["log_dir"].isNone())
+            FLAGS_log_dir = fs["log_dir"].string();
+        if (!fs["log_color"].isNone())
+            FLAGS_colorlogtostderr = static_cast<int>(fs["log_color"]);
+        if (!fs["log_also_to_stderr"].isNone())
+            FLAGS_alsologtostderr = static_cast<int>(fs["log_also_to_stderr"]);
     }
 
-    LOG(INFO) << "start_time:" << start_time_;
+    LOG(INFO) << "start_time:" << std::fixed << start_time_;
     LOG(INFO) << "cloud_path:" << cloud_path_;
     LOG(INFO) << "result_path:" << result_path_;
     LOG(INFO) << "timeSurface_decay_factor:" << timeSurface_decay_factor_;
@@ -113,9 +120,9 @@ void System::loadPointCloud(const std::string &cloud_path)
 {
     std::ifstream src;
     src.open(cloud_path);
-    double x_position, y_position, z_position, x_normal, y_normal, z_normal;
-    while(src >> x_position >> y_position >> z_position >> x_normal >> y_normal >> z_normal)
-        cloud_->emplace_back(x_position, y_position, z_position, x_normal, y_normal, z_normal);
+    double x_position, y_position, z_position, x_gradient, y_gradient, z_gradient;
+    while(src >> x_position >> y_position >> z_position >> x_gradient >> y_gradient >> z_gradient)
+        cloud_->emplace_back(x_position, y_position, z_position, x_gradient, y_gradient, z_gradient);
     LOG(INFO) << "load " << cloud_->size() << "points";
     src.close();
 }
@@ -237,27 +244,26 @@ void System::process()
                     event_it++;
                 }
                 TimeSurface::Ptr first_time_surface_observation(new TimeSurface(start_time_, timeSurface_decay_factor_));
+                cv::imwrite(result_path_ + std::to_string(start_time_) + ".jpg", first_time_surface_observation->time_surface_);
                 Frame::Ptr first_frame(new Frame(first_time_surface_observation, nullptr, event_cam_));
                 first_frame->set_velocity(V0_);
                 first_frame->set_Twb(R0_, t0_);
-                first_frame->time_surface_observation_->drawCloud(cloud_, first_frame->Twc(), "before", TimeSurface::PolarType::POSITIVE, true);
+                first_frame->time_surface_observation_->drawCloud(cloud_, first_frame->Twc(), "init_last_pose", TimeSurface::PolarType::NEUTRAL, true);
                 optimizer_->OptimizeEventProblemCeres(cloud_, first_frame);
+                first_frame->last_frame_ = nullptr;
+                first_frame->time_surface_observation_->drawCloud(cloud_, first_frame->Twc(), "after", TimeSurface::PolarType::NEUTRAL, true);
                 Frame::Ptr last_frame = first_frame;
-//                first_frame->time_surface_observation_->drawCloud(cloud_, Eigen::Matrix4d::Identity(), "first frame", TimeSurface::PolarType::POSITIVE, false);
-//                first_frame->time_surface_observation_->drawCloud(cloud_, Eigen::Matrix4d::Identity(), "first frame p", TimeSurface::PolarType::NEUTRAL, false);
-//                first_frame->time_surface_observation_->drawCloud(cloud_, Eigen::Matrix4d::Identity(), "first frame n", TimeSurface::PolarType::NEGATIVE, false);
-//                cv::waitKey(0);
 
                 double time_interval = 1.0 / static_cast<double>(init_freq_);
                 // localize first frame, first initial frame does not need integration
                 imu_t0_ = data.imuData.front().time_stamp_;
                 acc0_ = data.imuData.front().acc_;
                 gyr0_ = data.imuData.front().gyr_;
-
                 double target_frame_timestamp = data.imuData.front().time_stamp_;
                 last_frame = localizeFrameOnHighFreq(target_frame_timestamp, event_it, event_end, last_frame, time_interval);
                 last_frame->time_surface_observation_->drawCloud(cloud_, last_frame->Twc(), "init");
                 cv::waitKey(0);
+                last_frame->last_frame_ = first_frame;
                 initial_list.push_back(last_frame);
 
                 // localize on each frame
@@ -278,17 +284,19 @@ void System::process()
                     }
 
                     // localize one each frame
-                    double target_frame_timestamp = imu_t0_;
-                    last_frame = localizeFrameOnHighFreq(target_frame_timestamp, event_it, event_end, last_frame, time_interval);
-                    last_frame->time_surface_observation_->drawCloud(cloud_, last_frame->Twc(), "init");
-                    cv::waitKey(0);
-                    last_frame->set_integration(target_integration);
-                    initial_list.push_back(last_frame);
+                    target_frame_timestamp = imu_t0_;
+                    Frame::Ptr current_frame = localizeFrameOnHighFreq(target_frame_timestamp, event_it, event_end, last_frame, time_interval);
+                    current_frame->time_surface_observation_->drawCloud(cloud_, last_frame->Twc(), "init");
+                    current_frame->set_integration(target_integration);
+                    current_frame->last_frame_ = last_frame;
+                    initial_list.push_back(current_frame);
+                    last_frame = current_frame;
+                    cv::waitKey(10);
                 }
 
                 // TODO: MAY REPLACE AS LINEAR SOLVER
-                optimizer_->OptimizeVelovityBias(initial_list);
-//                optimizer_->initVelocityBias(initial_list);
+            //    optimizer_->OptimizeVelovityBias(initial_list);
+                // optimizer_->initVelocityBias(initial_list);
                 for (auto iter = initial_list.rbegin(); iter != initial_list.rend(); iter++)
                 {
                     (*iter)->integration_->repropagate((*iter)->Ba(), (*iter)->Bg());
@@ -322,7 +330,6 @@ void System::process()
 
                 // make current integration and predict pose
                 IntegrationBase::Ptr current_integration(new IntegrationBase(acc0_, gyr0_, last_ba, last_bg));
-
                 for (auto imu_iter = data.imuData.begin(); imu_iter != data.imuData.end(); imu_iter++)
                 {
                     double dt = imu_iter->time_stamp_ - imu_t0_;
@@ -340,6 +347,7 @@ void System::process()
                 current_frame->set_velocity(last_v);
                 current_frame->set_Ba(last_ba);
                 current_frame->set_Bg(last_bg);
+                current_frame->last_frame_ = last_frame;
 
         //        LOG(INFO) << "current frame:" << current_frame_time;
         //        LOG(INFO) << "Last pose:\n" << current_frame->Twb();
@@ -357,13 +365,19 @@ void System::process()
                 for (size_t i = 0; i < sliding_window_.size(); i++)
                 {
                     sliding_window_[i]->integration_->repropagate(sliding_window_[i]->Ba(), sliding_window_[i]->Bg());
-                    sliding_window_[i]->time_surface_observation_->drawCloud(cloud_, sliding_window_[i]->Twc(), std::to_string(i));
+                    if (i == 5)
+                    {
+                        sliding_window_[i]->time_surface_observation_->drawCloud(cloud_, sliding_window_[i]->Twc(), "positive" + std::to_string(i), TimeSurface::PolarType::POSITIVE);
+                        sliding_window_[i]->time_surface_observation_->drawCloud(cloud_, sliding_window_[i]->Twc(), "negative" + std::to_string(i), TimeSurface::PolarType::NEGATIVE);
+                        sliding_window_[i]->time_surface_observation_->drawCloud(cloud_, sliding_window_[i]->Twc(), std::to_string(i), TimeSurface::PolarType::NEUTRAL);
+                    }
                 }
                 cv::waitKey(10);
 
                 if (sliding_window_.size() > window_size_)
                 {
-    //            history_frames_.emplace_back(std::move(sliding_window_.front()));
+                    sliding_window_.front()->time_surface_observation_.reset(); // TODO: try to find another way to reduce memory burden
+                    history_frames_.emplace_back(std::move(sliding_window_.front()));
                     sliding_window_.pop_front();
                 }
                 break;

@@ -27,6 +27,7 @@ namespace CannyEVIT
         double time_stamp_;
 
         TimeSurface::Ptr time_surface_observation_;
+        Frame::Ptr last_frame_; // NOTE: use this in caution, do not result in cycle reference and try to optimize this
         IntegrationBase::Ptr integration_;
         EventCamera::Ptr event_camera_;
 

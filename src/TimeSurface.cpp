@@ -87,7 +87,7 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
 
         if (showGrad)
         {
-            Eigen::Vector3d p_normal(pt.x_normal_, pt.y_normal_, pt.z_normal_);
+            Eigen::Vector3d p_normal(pt.x_gradient_, pt.y_gradient_, pt.z_gradient_);
             Eigen::Vector3d p_normal_c = Rwc.transpose() * p_normal;
             Eigen::Vector3d p_normal_end_c = pc + p_normal_c;
             Eigen::Vector2d p_normal_end_2d = event_cam_->World2Cam(p_normal_end_c);
@@ -101,8 +101,6 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
         cv::circle(time_surface_clone, cvpt, 0, CV_RGB(255, 0, 0), cv::FILLED);
     }
     cv::imshow(window_name, time_surface_clone);
-
-
 }
 
 bool TimeSurface::isValidPatch(Eigen::Vector2d &patchCentreCoord, Eigen::MatrixXi &mask, size_t wx, size_t wy)
@@ -177,7 +175,7 @@ bool TimeSurface::patchInterpolation(const Eigen:: MatrixXd &img, const Eigen::V
 }
 
 Eigen::VectorXd TimeSurface::evaluate(const CannyEVIT::Point &p_w, const Eigen::Quaterniond &Qwb,
-                                      const Eigen::Vector3d &twb, int wx, int wy)
+                                      const Eigen::Vector3d &twb, int wx, int wy, PolarType polarType)
 {
     Eigen::Vector3d point_world(p_w.x, p_w.y, p_w.z);
     Eigen::Vector3d point_body = Qwb.toRotationMatrix().transpose() * (point_world - twb);
@@ -189,7 +187,18 @@ Eigen::VectorXd TimeSurface::evaluate(const CannyEVIT::Point &p_w, const Eigen::
         tau1.setConstant(255.0);
     else
     {
-        bool success = patchInterpolation(inverse_time_surface_, uv, wx, wy, tau1, false);
+        bool success = false;
+        switch (polarType) {
+            case NEUTRAL:
+                success = patchInterpolation(inverse_time_surface_, uv, wx, wy, tau1, false);
+                break;
+            case POSITIVE:
+                success = patchInterpolation(inverse_time_surface_positive_, uv, wx, wy, tau1, false);
+                break;
+            case NEGATIVE:
+                success = patchInterpolation(inverse_time_surface_negative_, uv, wx, wy, tau1, false);
+                break;
+        }
         if (!success)
             tau1.setConstant(255.0);
     }
@@ -197,7 +206,7 @@ Eigen::VectorXd TimeSurface::evaluate(const CannyEVIT::Point &p_w, const Eigen::
 }
 
 Eigen::MatrixXd TimeSurface::df(const CannyEVIT::Point &p_w, const Eigen::Quaterniond &Qwb, const Eigen::Vector3d &twb,
-                                int wx, int wy)
+                                int wx, int wy, PolarType polarType)
 {
     Eigen::MatrixXd jacobian(wx*wy, 6);
 
@@ -210,12 +219,25 @@ Eigen::MatrixXd TimeSurface::df(const CannyEVIT::Point &p_w, const Eigen::Quater
     else
     {
         Eigen::MatrixXd gx, gy;
-        patchInterpolation(gradX_inverse_time_surface_, uv, wx, wy, gx, false);
-        patchInterpolation(gradY_inverse_time_surface_, uv, wx, wy, gy, false);
+        switch (polarType) {
+            case NEUTRAL:
+                patchInterpolation(gradX_inverse_time_surface_, uv, wx, wy, gx, false);
+                patchInterpolation(gradY_inverse_time_surface_, uv, wx, wy, gy, false);
+                break;
+            case POSITIVE:
+                patchInterpolation(gradX_inverse_time_surface_positive_, uv, wx, wy, gx, false);
+                patchInterpolation(gradY_inverse_time_surface_positive_, uv, wx, wy, gy, false);
+                break;
+            case NEGATIVE:
+                patchInterpolation(gradX_inverse_time_surface_negative_, uv, wx, wy, gx, false);
+                patchInterpolation(gradY_inverse_time_surface_negative_, uv, wx, wy, gy, false);
+                break;
+        }
 
         Eigen::MatrixXd grad(2,wx*wy);
         grad.row(0) = gx.reshaped(1, wx*wy);
         grad.row(1) = gy.reshaped(1, wx*wy);
+        grad = grad / 8.0;
 
         Eigen::Matrix<double,2,3> duv_dPc;
         duv_dPc.setZero();
@@ -265,3 +287,36 @@ void TimeSurface::updateHistoryEvent(EventMsg msg)
     history_event_.at<double>(msg.y_, msg.x_) = msg.time_stamp_;
 }
 
+std::tuple<TimeSurface::PolarType, double> TimeSurface::determinePolarAndWeight(
+                                                        const CannyEVIT::Point &p_w,
+                                                        const Eigen::Matrix4d &T_current,
+                                                        const Eigen::Matrix4d &T_predict)
+{
+    Eigen::Vector3d p_world(p_w.x, p_w.y, p_w.z);
+    Eigen::Vector3d p_gradient_world(p_w.x_gradient_, p_w.y_gradient_, p_w.z_gradient_);
+
+    // This may be confusing, in fact, the "gradient" of the point is not the gradient direction of that point, it is a global point along that gradient direction.
+    Eigen::Vector3d p_cam_current = T_current.block<3, 3>(0, 0) * p_world + T_current.block<3, 1>(0, 3);
+    Eigen::Vector3d p_cam_predict = T_predict.block<3, 3>(0, 0) * p_world + T_predict.block<3, 1>(0, 3);
+    Eigen::Vector3d p_gradient_cam_current = T_current.block<3, 3>(0, 0) * p_gradient_world + T_current.block<3, 1>(0, 3);
+
+    Eigen::Vector2d uv_current = event_cam_->World2Cam(p_cam_current);
+    Eigen::Vector2d uv_predict = event_cam_->World2Cam(p_cam_predict);
+    Eigen::Vector2d uv_gradient_current = event_cam_->World2Cam(p_gradient_cam_current);
+
+    Eigen::Vector2d flow = uv_predict - uv_current;
+    Eigen::Vector2d gradient = uv_gradient_current - uv_current;
+    flow.normalize();
+    gradient.normalize();
+
+    // gradient is the pixel value increasing direction
+    // if the flow is at the opposite direction of gradient, the positive event is triggered
+    double cosTheta = flow.dot(gradient);
+    double weight = std::abs(cosTheta);
+    if (cosTheta < -0.866)
+        return std::make_tuple(TimeSurface::PolarType::POSITIVE, weight);
+    else if (cosTheta > 0.866)
+        return std::make_tuple(TimeSurface::PolarType::NEGATIVE, weight);
+    else
+        return std::make_tuple(TimeSurface::PolarType::NEUTRAL, weight);
+}

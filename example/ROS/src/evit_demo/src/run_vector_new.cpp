@@ -52,13 +52,19 @@ void ImuCallBack(const sensor_msgs::ImuConstPtr& imu_msg)
 int main( int argc, char **argv)
 {
   ros::init( argc, argv, "CannyEVIT_node" );
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
 
-  mSystem.reset(new CannyEVIT::System(argv[1]));
+  std::string config_path;
+  nh.getParam("config_path", config_path);
+  std::string imu_topic;
+  nh.getParam("imu_topic", imu_topic);
+  std::string event_topic;
+  nh.getParam("event_topic", event_topic);
 
-  ros::Subscriber imu_subscriber = nh.subscribe("/imu/data", 10000, &ImuCallBack, ros::TransportHints().tcpNoDelay());
-  ros::Subscriber event_subscriber = nh.subscribe("/prophesee/left/events", 10000, &EventCallBack, ros::TransportHints().tcpNoDelay());
+  mSystem.reset(new CannyEVIT::System(config_path));
 
+  ros::Subscriber imu_subscriber = nh.subscribe(imu_topic, 10000, &ImuCallBack, ros::TransportHints().tcpNoDelay());
+  ros::Subscriber event_subscriber = nh.subscribe(event_topic, 10000, &EventCallBack, ros::TransportHints().tcpNoDelay());
   ros::spin();
 }
 

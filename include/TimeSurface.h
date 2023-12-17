@@ -43,8 +43,9 @@ namespace CannyEVIT
                                 Eigen::MatrixXd &patch, bool debug);
 
         Eigen::VectorXd evaluate(const Point& p_w, const Eigen::Quaterniond& Qwb,
-                                 const Eigen::Vector3d& twb, int wx, int wy);
-        Eigen::MatrixXd df(const Point& p_w, const Eigen::Quaterniond& Qwb, const Eigen::Vector3d& twb, int wx, int wy);
+                                 const Eigen::Vector3d& twb, int wx, int wy, PolarType polarType = NEUTRAL);
+        Eigen::MatrixXd df(const Point& p_w, const Eigen::Quaterniond& Qwb, const Eigen::Vector3d& twb,
+                           int wx, int wy, PolarType polarType = NEUTRAL);
 
 
     public:
@@ -67,6 +68,7 @@ namespace CannyEVIT
         Eigen::MatrixXd gradY_inverse_time_surface_negative_;
 
     public:
+        static std::tuple<TimeSurface::PolarType, double> determinePolarAndWeight(const Point& p_w, const Eigen::Matrix4d& T_last, const Eigen::Matrix4d& T_current);
         static void initTimeSurface(const EventCamera::Ptr& event_cam);
         static void updateHistoryEvent(EventMsg msg);
         static EventCamera::Ptr event_cam_;

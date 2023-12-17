@@ -6,5 +6,9 @@ devel/
 lib/
 .idea/
 .vscode/
+.cache/
+.catkin_workspace
 log/
 *.log
+
+example/ROS/src/CMakeLists.txt
