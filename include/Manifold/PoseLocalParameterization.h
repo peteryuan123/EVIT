@@ -9,14 +9,14 @@
 #include <ceres/ceres.h>
 
 namespace CannyEVIT {
-    class PoseLocalParameterization : public ceres::LocalParameterization {
-        virtual bool Plus(const double *x, const double *delta, double *x_plus_delta) const;
+class PoseLocalParameterization : public ceres::LocalParameterization {
+  virtual bool Plus(const double *x, const double *delta, double *x_plus_delta) const;
 
-        virtual bool ComputeJacobian(const double *x, double *jacobian) const;
+  virtual bool ComputeJacobian(const double *x, double *jacobian) const;
 
-        virtual int GlobalSize() const;
+  virtual int GlobalSize() const;
 
-        virtual int LocalSize() const;
-    };
-}
-#endif //CANNYEVIT_POSELOCALPARAMETERIZATION_H
+  virtual int LocalSize() const;
+};
+}  // namespace CannyEVIT
+#endif  // CANNYEVIT_POSELOCALPARAMETERIZATION_H

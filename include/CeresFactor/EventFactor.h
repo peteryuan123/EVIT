@@ -6,31 +6,26 @@
 #define CANNYEVIT_EVENTFACTOR_H
 
 #include <ceres/ceres.h>
-#include "Type.h"
+
 #include "TimeSurface.h"
+#include "Type.h"
 
-namespace CannyEVIT
-{
-class EventFactor : public ceres::CostFunction
-    {
-    public:
-        EventFactor() = delete;
-        EventFactor(const Point& p_w,
-                    const TimeSurface::Ptr& time_surface,
-                    int wx, int wy,
-                    TimeSurface::PolarType = TimeSurface::PolarType::NEUTRAL,
-                    double weight = 1.0);
+namespace CannyEVIT {
+class EventFactor : public ceres::CostFunction {
+ public:
+  EventFactor() = delete;
+  EventFactor(const Point &p_w, const TimeSurface::Ptr &time_surface, int wx, int wy,
+              TimeSurface::PolarType = TimeSurface::PolarType::NEUTRAL, double weight = 1.0);
 
-        virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
+  virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
 
-        TimeSurface::PolarType polar_;
-        Point p_w_;
-        TimeSurface::Ptr time_surface_;
-        int wx_, wy_;
-        double weight_;
-    };
+  TimeSurface::PolarType polar_;
+  Point p_w_;
+  TimeSurface::Ptr time_surface_;
+  int wx_, wy_;
+  double weight_;
+};
 
+}  // namespace CannyEVIT
 
-}
-
-#endif //CANNYEVIT_EVENTFACTOR_H
+#endif  // CANNYEVIT_EVENTFACTOR_H

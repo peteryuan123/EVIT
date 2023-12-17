@@ -2,78 +2,76 @@
 #define EVIT_NEW_INTEGRATION_BASE
 
 #include <opencv2/opencv.hpp>
+
 #include "Util.h"
 
-namespace CannyEVIT
-{
-    class IntegrationBase
-    {
-    public:
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-        typedef std::shared_ptr<IntegrationBase> Ptr;
-        typedef std::shared_ptr<IntegrationBase const> ConstPtr;
+namespace CannyEVIT {
+class IntegrationBase {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  typedef std::shared_ptr<IntegrationBase> Ptr;
+  typedef std::shared_ptr<IntegrationBase const> ConstPtr;
 
-        IntegrationBase() = delete;
-        IntegrationBase(const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0,
-                        const Eigen::Vector3d &_linearized_ba, const Eigen::Vector3d &_linearized_bg);
+  IntegrationBase() = delete;
+  IntegrationBase(const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0, const Eigen::Vector3d &_linearized_ba,
+                  const Eigen::Vector3d &_linearized_bg);
 
-        void push_back(double dt, const Eigen::Vector3d &acc, const Eigen::Vector3d &gyr);
+  void push_back(double dt, const Eigen::Vector3d &acc, const Eigen::Vector3d &gyr);
 
+  void repropagate(const Eigen::Vector3d &_linearized_ba, const Eigen::Vector3d &_linearized_bg);
 
-        void repropagate(const Eigen::Vector3d &_linearized_ba, const Eigen::Vector3d &_linearized_bg);
+  void midPointIntegration(double _dt, const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0,
+                           const Eigen::Vector3d &_acc_1, const Eigen::Vector3d &_gyr_1, const Eigen::Vector3d &delta_p,
+                           const Eigen::Quaterniond &delta_q, const Eigen::Vector3d &delta_v,
+                           const Eigen::Vector3d &linearized_ba, const Eigen::Vector3d &linearized_bg,
+                           Eigen::Vector3d &result_delta_p, Eigen::Quaterniond &result_delta_q,
+                           Eigen::Vector3d &result_delta_v, Eigen::Vector3d &result_linearized_ba,
+                           Eigen::Vector3d &result_linearized_bg, bool update_jacobian);
 
-        void midPointIntegration(double _dt,
-                                 const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0,
-                                 const Eigen::Vector3d &_acc_1, const Eigen::Vector3d &_gyr_1,
-                                 const Eigen::Vector3d &delta_p, const Eigen::Quaterniond &delta_q, const Eigen::Vector3d &delta_v,
-                                 const Eigen::Vector3d &linearized_ba, const Eigen::Vector3d &linearized_bg,
-                                 Eigen::Vector3d &result_delta_p, Eigen::Quaterniond &result_delta_q, Eigen::Vector3d &result_delta_v,
-                                 Eigen::Vector3d &result_linearized_ba, Eigen::Vector3d &result_linearized_bg, bool update_jacobian);
+  void propagate(double _dt, const Eigen::Vector3d &_acc_1, const Eigen::Vector3d &_gyr_1);
 
-        void propagate(double _dt, const Eigen::Vector3d &_acc_1, const Eigen::Vector3d &_gyr_1);
+  Eigen::Matrix<double, 15, 1> evaluate(const Eigen::Vector3d &Pi, const Eigen::Quaterniond &Qi,
+                                        const Eigen::Vector3d &Vi, const Eigen::Vector3d &Bai,
+                                        const Eigen::Vector3d &Bgi, const Eigen::Vector3d &Pj,
+                                        const Eigen::Quaterniond &Qj, const Eigen::Vector3d &Vj,
+                                        const Eigen::Vector3d &Baj, const Eigen::Vector3d &Bgj);
 
-        Eigen::Matrix<double, 15, 1> evaluate(const Eigen::Vector3d &Pi, const Eigen::Quaterniond &Qi, const Eigen::Vector3d &Vi, const Eigen::Vector3d &Bai, const Eigen::Vector3d &Bgi,
-                                              const Eigen::Vector3d &Pj, const Eigen::Quaterniond &Qj, const Eigen::Vector3d &Vj, const Eigen::Vector3d &Baj, const Eigen::Vector3d &Bgj);
+  double dt;
+  Eigen::Vector3d acc_0, gyr_0;
+  Eigen::Vector3d acc_1, gyr_1;
 
+  const Eigen::Vector3d linearized_acc, linearized_gyr;
+  Eigen::Vector3d linearized_ba, linearized_bg;
 
-        double dt;
-        Eigen::Vector3d acc_0, gyr_0;
-        Eigen::Vector3d acc_1, gyr_1;
+  Eigen::Matrix<double, 15, 15> jacobian, covariance;
+  Eigen::Matrix<double, 15, 15> step_jacobian;
+  Eigen::Matrix<double, 15, 18> step_V;
+  Eigen::Matrix<double, 18, 18> noise;
 
-        const Eigen::Vector3d linearized_acc, linearized_gyr;
-        Eigen::Vector3d linearized_ba, linearized_bg;
+  double sum_dt;
+  Eigen::Vector3d delta_p;
+  Eigen::Quaterniond delta_q;
+  Eigen::Vector3d delta_v;
 
-        Eigen::Matrix<double, 15, 15> jacobian, covariance;
-        Eigen::Matrix<double, 15, 15> step_jacobian;
-        Eigen::Matrix<double, 15, 18> step_V;
-        Eigen::Matrix<double, 18, 18> noise;
+  std::vector<double> dt_buf;
+  std::vector<Eigen::Vector3d> acc_buf;
+  std::vector<Eigen::Vector3d> gyr_buf;
 
-        double sum_dt;
-        Eigen::Vector3d delta_p;
-        Eigen::Quaterniond delta_q;
-        Eigen::Vector3d delta_v;
-
-        std::vector<double> dt_buf;
-        std::vector<Eigen::Vector3d> acc_buf;
-        std::vector<Eigen::Vector3d> gyr_buf;
-
-    public:
-        static void setCalib(std::string config_path);
-        static double ACC_N, GYR_N;
-        static double ACC_W, GYR_W;
-        static Eigen::Vector3d G;
-    };
-
-
+ public:
+  static void setCalib(std::string config_path);
+  static double ACC_N, GYR_N;
+  static double ACC_W, GYR_W;
+  static Eigen::Vector3d G;
+};
 
 /*
 
     void eulerIntegration(double _dt, const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0,
                             const Eigen::Vector3d &_acc_1, const Eigen::Vector3d &_gyr_1,
-                            const Eigen::Vector3d &delta_p, const Eigen::Quaterniond &delta_q, const Eigen::Vector3d &delta_v,
-                            const Eigen::Vector3d &linearized_ba, const Eigen::Vector3d &linearized_bg,
-                            Eigen::Vector3d &result_delta_p, Eigen::Quaterniond &result_delta_q, Eigen::Vector3d &result_delta_v,
-                            Eigen::Vector3d &result_linearized_ba, Eigen::Vector3d &result_linearized_bg, bool update_jacobian)
+                            const Eigen::Vector3d &delta_p, const Eigen::Quaterniond &delta_q, const Eigen::Vector3d
+   &delta_v, const Eigen::Vector3d &linearized_ba, const Eigen::Vector3d &linearized_bg, Eigen::Vector3d
+   &result_delta_p, Eigen::Quaterniond &result_delta_q, Eigen::Vector3d &result_delta_v, Eigen::Vector3d
+   &result_linearized_ba, Eigen::Vector3d &result_linearized_bg, bool update_jacobian)
     {
         result_delta_p = delta_p + delta_v * _dt + 0.5 * (delta_q * (_acc_1 - linearized_ba)) * _dt * _dt;
         result_delta_v = delta_v + delta_q * (_acc_1 - linearized_ba) * _dt;
@@ -137,8 +135,8 @@ namespace CannyEVIT
 
     void checkJacobian(double _dt, const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0,
                                    const Eigen::Vector3d &_acc_1, const Eigen::Vector3d &_gyr_1,
-                            const Eigen::Vector3d &delta_p, const Eigen::Quaterniond &delta_q, const Eigen::Vector3d &delta_v,
-                            const Eigen::Vector3d &linearized_ba, const Eigen::Vector3d &linearized_bg)
+                            const Eigen::Vector3d &delta_p, const Eigen::Quaterniond &delta_q, const Eigen::Vector3d
+   &delta_v, const Eigen::Vector3d &linearized_ba, const Eigen::Vector3d &linearized_bg)
     {
         Vector3d result_delta_p;
         Quaterniond result_delta_q;
@@ -174,9 +172,8 @@ namespace CannyEVIT
         cout << "bg diff " << (turb_linearized_bg - result_linearized_bg).transpose() << endl;
         cout << "bg jacob diff " << (step_jacobian.block<3, 3>(12, 0) * turb).transpose() << endl;
 
-        midPointIntegration(_dt, _acc_0, _gyr_0, _acc_1, _gyr_1, delta_p, delta_q * Quaterniond(1, turb(0) / 2, turb(1) / 2, turb(2) / 2), delta_v,
-                            linearized_ba, linearized_bg,
-                            turb_delta_p, turb_delta_q, turb_delta_v,
+        midPointIntegration(_dt, _acc_0, _gyr_0, _acc_1, _gyr_1, delta_p, delta_q * Quaterniond(1, turb(0) / 2, turb(1)
+   / 2, turb(2) / 2), delta_v, linearized_ba, linearized_bg, turb_delta_p, turb_delta_q, turb_delta_v,
                             turb_linearized_ba, turb_linearized_bg, 0);
         cout << "turb q       " << endl;
         cout << "p diff       " << (turb_delta_p - result_delta_p).transpose() << endl;
@@ -303,6 +300,6 @@ namespace CannyEVIT
         cout << "bg jacob diff" << (step_V.block<3, 3>(12, 9) * turb).transpose() << endl;
     }
     */
-}
+}  // namespace CannyEVIT
 
-#endif //EVIT_NEW_INTEGRATION_BASE
+#endif  // EVIT_NEW_INTEGRATION_BASE

@@ -7,47 +7,43 @@
 
 #include <Eigen/Eigen>
 
-namespace CannyEVIT
-{
+namespace CannyEVIT {
 
-    template<typename ScalarT, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
-    struct GenericFunctor {
-        /** undocumented */
-        typedef ScalarT Scalar;
-        /** undocumented */
-        enum {
-            InputsAtCompileTime = NX, ValuesAtCompileTime = NY
-        };
-        /** undocumented */
-        typedef Eigen::Matrix<Scalar, InputsAtCompileTime, 1> InputType;
-        /** undocumented */
-        typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, 1> ValueType;
-        /** undocumented */
-        typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, InputsAtCompileTime> JacobianType;
+template <typename ScalarT, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
+struct GenericFunctor {
+  /** undocumented */
+  typedef ScalarT Scalar;
+  /** undocumented */
+  enum { InputsAtCompileTime = NX, ValuesAtCompileTime = NY };
+  /** undocumented */
+  typedef Eigen::Matrix<Scalar, InputsAtCompileTime, 1> InputType;
+  /** undocumented */
+  typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, 1> ValueType;
+  /** undocumented */
+  typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, InputsAtCompileTime> JacobianType;
 
-        /** undocumented */
-        const int m_inputs;
-        /** undocumented */
-        int m_values;
+  /** undocumented */
+  const int m_inputs;
+  /** undocumented */
+  int m_values;
 
-        /** undocumented */
-        GenericFunctor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
+  /** undocumented */
+  GenericFunctor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
 
-        /** undocumented */
-        GenericFunctor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
+  /** undocumented */
+  GenericFunctor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
 
-        /** undocumented */
-        int inputs() const { return m_inputs; }
+  /** undocumented */
+  int inputs() const { return m_inputs; }
 
-        /** undocumented */
-        int values() const { return m_values; }
+  /** undocumented */
+  int values() const { return m_values; }
 
-//    void resetNumberInputs(int inputs) { m_inputs = inputs; }
+  //    void resetNumberInputs(int inputs) { m_inputs = inputs; }
 
-        void resetNumberValues(int values) { m_values = values; }
-    };
+  void resetNumberValues(int values) { m_values = values; }
+};
 
+}  // namespace CannyEVIT
 
-}
-
-#endif //CANNYEVIT_GENERICFUNCTOR_H
+#endif  // CANNYEVIT_GENERICFUNCTOR_H

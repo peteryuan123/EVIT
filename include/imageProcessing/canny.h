@@ -1,0 +1,5 @@
+#ifndef CANNYEVIT_CANNY
+#define CANNYEVIT_CANNY
+
+
+#endif /* CANNYEVIT_CANNY */

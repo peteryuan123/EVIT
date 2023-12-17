@@ -1,14 +1,5 @@
-// Integrated from PolyView
-
-namespace CannyEVIT
-{
-
-namespace image_processing 
-{
-    void
+#ifndef CANNYEVIT_DISTANCEFIELD
+#define CANNYEVIT_DISTANCEFIELD
 
 
-}
-
-
-}
+#endif /* CANNYEVIT_DISTANCEFIELD */

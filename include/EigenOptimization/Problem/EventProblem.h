@@ -10,56 +10,48 @@
 #include "Frame.h"
 #include "Type.h"
 
+namespace CannyEVIT {
 
-namespace CannyEVIT
-{
+struct EventProblemConfig {
+  EventProblemConfig(size_t patch_size_X = 1, size_t patch_size_Y = 1, double huber_threshold = 10,
+                     size_t MAX_REGISTRATION_POINTS = 3000, size_t batch_size = 300)
+      : patch_size_X_(patch_size_X),
+        patch_size_Y_(patch_size_Y),
+        huber_threshold_(huber_threshold),
+        MAX_REGISTRATION_POINTS_(MAX_REGISTRATION_POINTS),
+        batch_size_(batch_size) {}
 
-    struct EventProblemConfig
-    {
-        EventProblemConfig(size_t patch_size_X = 1, size_t patch_size_Y = 1, double huber_threshold = 10,
-                           size_t MAX_REGISTRATION_POINTS = 3000, size_t batch_size = 300)
-        :patch_size_X_(patch_size_X), patch_size_Y_(patch_size_Y), huber_threshold_(huber_threshold),
-        MAX_REGISTRATION_POINTS_(MAX_REGISTRATION_POINTS), batch_size_(batch_size)
-        {}
+  size_t patch_size_X_, patch_size_Y_;
+  double huber_threshold_;
+  size_t MAX_REGISTRATION_POINTS_;
+  size_t batch_size_;
+};
 
-        size_t patch_size_X_, patch_size_Y_;
-        double huber_threshold_;
-        size_t MAX_REGISTRATION_POINTS_;
-        size_t batch_size_;
-    };
+class EventProblemLM : public GenericFunctor<double> {
+ public:
+  EventProblemLM(EventProblemConfig config);
+  ~EventProblemLM() = default;
 
-    class EventProblemLM: public GenericFunctor<double>
-    {
+  int operator()(const Eigen::Matrix<double, 6, 1>& x, Eigen::VectorXd& fvec) const;
+  int df(const Eigen::Matrix<double, 6, 1>& x, Eigen::MatrixXd& fjac) const;
+  void addMotionUpdate(const Eigen::Matrix<double, 6, 1>& dx);
 
-    public:
-        EventProblemLM(EventProblemConfig config);
-        ~EventProblemLM() = default;
+  void addPerturbation(Eigen::Quaterniond& Qwb, Eigen::Vector3d& twb, const Eigen::Matrix<double, 6, 1>& x) const;
 
-        int operator()(const Eigen::Matrix<double, 6, 1>& x, Eigen::VectorXd &fvec) const;
-        int df(const Eigen::Matrix<double, 6, 1>& x, Eigen::MatrixXd &fjac) const;
-        void addMotionUpdate(const Eigen::Matrix<double, 6, 1> &dx);
+  void setProblem(Frame::Ptr frame, pCloud cloud);
 
-        void addPerturbation(Eigen::Quaterniond& Qwb, Eigen::Vector3d& twb, const Eigen::Matrix<double, 6, 1> &x) const;
+  EventProblemConfig config_;
+  pCloud cloud_;
+  Frame::Ptr frame_;
+  std::vector<ResidualEventInfo::Ptr> residuals_info_;
 
-        void setProblem(Frame::Ptr frame, pCloud cloud);
+  size_t residual_start_index_, residual_end_index_;
 
-        EventProblemConfig config_;
-        pCloud cloud_;
-        Frame::Ptr frame_;
-        std::vector<ResidualEventInfo::Ptr> residuals_info_;
+  size_t point_num_;
+  size_t patch_size_;
+  size_t batch_num_;
+};
 
-        size_t residual_start_index_, residual_end_index_;
+}  // namespace CannyEVIT
 
-        size_t point_num_;
-        size_t patch_size_;
-        size_t batch_num_;
-
-
-    };
-
-
-}
-
-
-
-#endif //CANNYEVIT_EVENTPROBLEM_H
+#endif  // CANNYEVIT_EVENTPROBLEM_H
