@@ -11,11 +11,17 @@
 #include "EventCamera.h"
 
 namespace CannyEVIT {
+
+const size_t GNUMBERTHREADS = 4; //TODO: REFINE THIS
+
 enum StateOrder { O_P = 0, O_R = 3, O_V = 6, O_BA = 9, O_BG = 12 };
 
 enum NoiseOrder { O_AN = 0, O_GN = 3, O_AW = 6, O_GW = 9 };
 
 namespace Utility {
+
+
+
 template <typename Derived>
 static Eigen::Quaternion<typename Derived::Scalar> deltaQ(const Eigen::MatrixBase<Derived> &theta) {
   typedef typename Derived::Scalar Scalar_t;

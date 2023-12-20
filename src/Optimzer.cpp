@@ -196,7 +196,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
     for (size_t i = 0; i < window_size; i++) {
       std::tuple<TimeSurface::PolarType, double> res =
           TimeSurface::determinePolarAndWeight(cloud->at(*iter), window[i]->last_frame_->Twb(), window[i]->Twb());
-      res = std::make_tuple(TimeSurface::PolarType::NEUTRAL, 1);
+      res = std::make_tuple(TimeSurface::PolarType::DISTANCE_FIELD, 1);
       if (std::get<0>(res) == TimeSurface::PolarType::POSITIVE)
         positive_num++;
       else if (std::get<0>(res) == TimeSurface::PolarType::NEGATIVE)

@@ -336,7 +336,7 @@ void System::process() {
             sliding_window_[i]->time_surface_observation_->drawCloud(
                 cloud_, sliding_window_[i]->Twc(), "negative" + std::to_string(i), TimeSurface::PolarType::NEGATIVE);
             sliding_window_[i]->time_surface_observation_->drawCloud(
-                cloud_, sliding_window_[i]->Twc(), std::to_string(i), TimeSurface::PolarType::NEUTRAL);
+                cloud_, sliding_window_[i]->Twc(), std::to_string(i), TimeSurface::PolarType::DISTANCE_FIELD);
           }
         }
         cv::waitKey(10);

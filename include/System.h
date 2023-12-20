@@ -2,8 +2,8 @@
 // Created by mpl on 23-11-7.
 //
 
-#ifndef EVIT_NEW_SYSTEM_H
-#define EVIT_NEW_SYSTEM_H
+#ifndef CANNYEVIT_SYSTEM
+#define CANNYEVIT_SYSTEM
 
 #include <Eigen/Geometry>
 #include <condition_variable>
@@ -96,4 +96,4 @@ class System {
 
 }  // namespace CannyEVIT
 
-#endif  // EVIT_NEW_SYSTEM_H
+#endif /* CANNYEVIT_SYSTEM */

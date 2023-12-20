@@ -12,11 +12,11 @@ EventProblemLM::EventProblemLM(EventProblemConfig config)
       config_(config),
       cloud_(nullptr),
       frame_(nullptr),
+      residual_start_index_(0),
+      residual_end_index_(0),
       point_num_(0),
       patch_size_(config.patch_size_X_ * config.patch_size_Y_),
-      batch_num_(0),
-      residual_start_index_(0),
-      residual_end_index_(0) {}
+      batch_num_(0) {}
 
 void EventProblemLM::setProblem(Frame::Ptr frame, CannyEVIT::pCloud cloud) {
   frame_ = frame;

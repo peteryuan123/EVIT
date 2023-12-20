@@ -16,30 +16,37 @@
 
 namespace CannyEVIT {
 
+
+
 class TimeSurface {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef std::shared_ptr<TimeSurface> Ptr;
   typedef std::shared_ptr<TimeSurface const> ConstPtr;
 
-  enum PolarType { NEUTRAL, POSITIVE, NEGATIVE };
+  enum PolarType { NEUTRAL, POSITIVE, NEGATIVE, DISTANCE_FIELD };
 
   TimeSurface(double time_stamp, double decay_fator);
 
-  void processTimeSurface(const cv::Mat& history_event, double time_stamp, double decay_factor, cv::Mat& time_surface,
-                          Eigen::MatrixXd& inverse_time_surface, Eigen::MatrixXd& inverse_gradX,
-                          Eigen::MatrixXd& inverse_gradY);
-  void drawCloud(pCloud cloud, const Eigen::Matrix4d& Twc, const std::string& window_name,
+  void processTimeSurface(const cv::Mat &history_event, double time_stamp, double decay_factor, cv::Mat &time_surface,
+                          Eigen::MatrixXd &inverse_time_surface, Eigen::MatrixXd &inverse_gradX,
+                          Eigen::MatrixXd &inverse_gradY);
+  void constructDistanceField(const cv::Mat &time_surface,
+                              Eigen::MatrixXd &distance_field,
+                              Eigen::MatrixXd &gradX_distance_field,
+                              Eigen::MatrixXd &gradY_distance_field,
+                              cv::Mat& img);
+  void drawCloud(pCloud cloud, const Eigen::Matrix4d &Twc, const std::string &window_name,
                  PolarType polarType = NEUTRAL, bool showGrad = false);
 
   // for compute residual
-  bool isValidPatch(Eigen::Vector2d& patchCentreCoord, Eigen::MatrixXi& mask, size_t wx, size_t wy);
-  bool patchInterpolation(const Eigen::MatrixXd& img, const Eigen::Vector2d& location, int wx, int wy,
-                          Eigen::MatrixXd& patch, bool debug);
+  bool isValidPatch(Eigen::Vector2d &patchCentreCoord, Eigen::MatrixXi &mask, size_t wx, size_t wy);
+  bool patchInterpolation(const Eigen::MatrixXd &img, const Eigen::Vector2d &location, int wx, int wy,
+                          Eigen::MatrixXd &patch, bool debug);
 
-  Eigen::VectorXd evaluate(const Point& p_w, const Eigen::Quaterniond& Qwb, const Eigen::Vector3d& twb, int wx, int wy,
+  Eigen::VectorXd evaluate(const Point &p_w, const Eigen::Quaterniond &Qwb, const Eigen::Vector3d &twb, int wx, int wy,
                            PolarType polarType = NEUTRAL);
-  Eigen::MatrixXd df(const Point& p_w, const Eigen::Quaterniond& Qwb, const Eigen::Vector3d& twb, int wx, int wy,
+  Eigen::MatrixXd df(const Point &p_w, const Eigen::Quaterniond &Qwb, const Eigen::Vector3d &twb, int wx, int wy,
                      PolarType polarType = NEUTRAL);
 
  public:
@@ -49,6 +56,9 @@ class TimeSurface {
   cv::Mat time_surface_;
   cv::Mat time_surface_positive_;
   cv::Mat time_surface_negative_;
+  cv::Mat img_canny_;
+  cv::Mat img_canny_positive_;
+  cv::Mat img_canny_negative_;
 
   Eigen::MatrixXd inverse_time_surface_;
   Eigen::MatrixXd inverse_time_surface_positive_;
@@ -61,11 +71,20 @@ class TimeSurface {
   Eigen::MatrixXd gradX_inverse_time_surface_negative_;
   Eigen::MatrixXd gradY_inverse_time_surface_negative_;
 
+  Eigen::MatrixXd distance_field_;
+  Eigen::MatrixXd gradX_distance_field_;
+  Eigen::MatrixXd gradY_distance_field_;
+  Eigen::MatrixXd distance_field_positive_;
+  Eigen::MatrixXd gradX_distance_field_positive_;
+  Eigen::MatrixXd gradY_distance_field_positive_;
+  Eigen::MatrixXd distance_field_negative_;
+  Eigen::MatrixXd gradX_distance_field_negative_;
+  Eigen::MatrixXd gradY_distance_field_negative_;
  public:
-  static std::tuple<TimeSurface::PolarType, double> determinePolarAndWeight(const Point& p_w,
-                                                                            const Eigen::Matrix4d& T_last,
-                                                                            const Eigen::Matrix4d& T_current);
-  static void initTimeSurface(const EventCamera::Ptr& event_cam);
+  static std::tuple<TimeSurface::PolarType, double> determinePolarAndWeight(const Point &p_w,
+                                                                            const Eigen::Matrix4d &T_last,
+                                                                            const Eigen::Matrix4d &T_current);
+  static void initTimeSurface(const EventCamera::Ptr &event_cam);
   static void updateHistoryEvent(EventMsg msg);
   static EventCamera::Ptr event_cam_;
   static cv::Mat history_event_;
