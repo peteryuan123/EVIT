@@ -47,7 +47,9 @@ set(SRC_FILE
         src/EigenOptimization/Problem/EventProblem.cpp
 
         src/imageProcessing/distanceField.cpp
-
+        src/imageProcessing/canny.cpp
+        src/imageProcessing/sobel.cpp
+        src/imageProcessing/image_processing.cpp
 )
 
 
@@ -71,7 +73,10 @@ set(INCLUDE_FILE
         include/EigenOptimization/Problem/EventProblem.h
         include/EigenOptimization/Factor/ResidualEventItem.h
 
+        include/imageProcessing/canny.h
         include/imageProcessing/distanceField.h
+        include/imageProcessing/sobel.h
+        include/imageProcessing/image_processing.h
 )
 
 # library
@@ -86,6 +91,7 @@ target_link_libraries(EVIT
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 
+# test
 add_executable(test_system
         example/test/test_system_read_param.cpp
 )
@@ -100,7 +106,6 @@ target_link_libraries(test_normal
         EVIT
 )
 
-
 add_executable(test_cam
         example/test/test_cam.cpp
 )
@@ -108,5 +113,11 @@ target_link_libraries(test_cam
         EVIT
 )
 
+add_executable(test_canny
+        example/test/test_canny.cpp
+)
+target_link_libraries(test_canny
+        EVIT
+)
 
 

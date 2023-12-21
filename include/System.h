@@ -27,26 +27,35 @@ class System {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  System(const std::string& config_path);
+  System(const std::string &config_path);
   ~System();
 
  public:
-  void readParam(const std::string& config_path);
+  void readParam(const std::string &config_path);
 
   void GrabEventMsg(double time_stamp, size_t x, size_t y, bool polarity);
   void GrabImuMsg(double time_stamp, double accX, double accY, double accZ, double gyrX, double gyrY, double gyrZ);
 
-  bool getMeasurement(FrameData& data);
+  bool getMeasurement(FrameData &data);
   void process();
 
-  void predictIMUPose(double dt, const Eigen::Vector3d& acc0, const Eigen::Vector3d& gyr0, const Eigen::Vector3d& acc1,
-                      const Eigen::Vector3d& gyr1, const Eigen::Vector3d& ba, const Eigen::Vector3d& bg,
-                      Eigen::Quaterniond& Q, Eigen::Vector3d& t, Eigen::Vector3d& v);
+  void predictIMUPose(double dt,
+                      const Eigen::Vector3d &acc0,
+                      const Eigen::Vector3d &gyr0,
+                      const Eigen::Vector3d &acc1,
+                      const Eigen::Vector3d &gyr1,
+                      const Eigen::Vector3d &ba,
+                      const Eigen::Vector3d &bg,
+                      Eigen::Quaterniond &Q,
+                      Eigen::Vector3d &t,
+                      Eigen::Vector3d &v);
 
-  void loadPointCloud(const std::string& cloud_path);
+  void loadPointCloud(const std::string &cloud_path);
 
-  Frame::Ptr localizeFrameOnHighFreq(double target_timestamp, std::vector<EventMsg>::iterator& iter,
-                                     const std::vector<EventMsg>::iterator& end, Frame::Ptr last_frame,
+  Frame::Ptr localizeFrameOnHighFreq(double target_timestamp,
+                                     std::vector<EventMsg>::iterator &iter,
+                                     const std::vector<EventMsg>::iterator &end,
+                                     Frame::Ptr last_frame,
                                      double time_interval);
 
  public:

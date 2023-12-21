@@ -17,7 +17,7 @@
 
 using namespace CannyEVIT;
 
-Optimizer::Optimizer(const std::string& config_path, EventCamera::Ptr event_camera)
+Optimizer::Optimizer(const std::string &config_path, EventCamera::Ptr event_camera)
     : event_camera_(std::move(event_camera)), patch_size_X_(0), patch_size_Y_(0) {
   LOG(INFO) << "-------------- Optimizer --------------";
 
@@ -49,19 +49,16 @@ bool Optimizer::OptimizeEventProblemCeres(CannyEVIT::pCloud cloud, Frame::Ptr fr
   frame->time_surface_observation_->drawCloud(cur_cloud, frame->Twc(), "shuffled cloud");
 
   ceres::Problem problem;
-  ceres::Manifold* local_para = new PoseLocalManifold();
+  ceres::Manifold *local_para = new PoseLocalManifold();
   //    ceres::LocalParameterization* local_para = new PoseLocalParameterization();
   problem.AddParameterBlock(pose_param.data(), 7, local_para);
-  ceres::LossFunction* loss_function;
+  ceres::LossFunction *loss_function;
   loss_function = new ceres::HuberLoss(0.5);
 
   for (size_t i = 0; i < MAX_REGISTRATION_POINTS_; i++) {
     problem.AddResidualBlock(
         new EventFactor(cur_cloud->at(i), frame->time_surface_observation_, patch_size_X_, patch_size_Y_),
         loss_function, pose_param.data());
-    //        problem.AddResidualBlock(EventAutoDiffFactor::create(cloud->at(i), frame->time_surface_observation_,
-    //        patch_size_X_, patch_size_Y_),
-    //                                 loss_function, pose_param.data());
   }
   ceres::Solver::Options options;
   //    options.check_gradients = true;
@@ -79,7 +76,7 @@ bool Optimizer::OptimizeEventProblemCeres(CannyEVIT::pCloud cloud, Frame::Ptr fr
 
 bool Optimizer::OptimizeSlidingWindowProblemCeres(CannyEVIT::pCloud cloud, std::deque<Frame::Ptr> window) {
   ceres::Problem problem;
-  ceres::LossFunction* loss_function;
+  ceres::LossFunction *loss_function;
   loss_function = new ceres::HuberLoss(10);
 
   size_t window_size = window.size();
@@ -87,16 +84,16 @@ bool Optimizer::OptimizeSlidingWindowProblemCeres(CannyEVIT::pCloud cloud, std::
   std::vector<Eigen::Matrix<double, 7, 1>> opt_pose(window_size);
   std::vector<Eigen::Matrix<double, 9, 1>> opt_speed_bias(window_size);
   for (size_t i = 0; i < window_size; i++) {
-    const Eigen::Quaterniond& Qwb = window[i]->Qwb();
-    const Eigen::Vector3d& twb = window[i]->twb();
-    const Eigen::Vector3d& velocity = window[i]->velocity();
-    const Eigen::Vector3d& ba = window[i]->Ba();
-    const Eigen::Vector3d& bg = window[i]->Bg();
+    const Eigen::Quaterniond &Qwb = window[i]->Qwb();
+    const Eigen::Vector3d &twb = window[i]->twb();
+    const Eigen::Vector3d &velocity = window[i]->velocity();
+    const Eigen::Vector3d &ba = window[i]->Ba();
+    const Eigen::Vector3d &bg = window[i]->Bg();
 
     opt_pose[i] << twb.x(), twb.y(), twb.z(), Qwb.x(), Qwb.y(), Qwb.z(), Qwb.w();
     opt_speed_bias[i] << velocity.x(), velocity.y(), velocity.z(), ba.x(), ba.y(), ba.z(), bg.x(), bg.y(), bg.z();
 
-    PoseLocalManifold* local_para = new PoseLocalManifold();
+    PoseLocalManifold *local_para = new PoseLocalManifold();
 
     //        ceres::LocalParameterization* local_para = new PoseLocalParameterization();
     problem.AddParameterBlock(opt_pose[i].data(), 7, local_para);
@@ -118,8 +115,12 @@ bool Optimizer::OptimizeSlidingWindowProblemCeres(CannyEVIT::pCloud cloud, std::
   }
 
   for (size_t i = 1; i < window_size; i++) {
-    problem.AddResidualBlock(new IMUFactor(window[i]->integration_.get()), nullptr, opt_pose[i - 1].data(),
-                             opt_speed_bias[i - 1].data(), opt_pose[i].data(), opt_speed_bias[i].data());
+    problem.AddResidualBlock(new IMUFactor(window[i]->integration_.get()),
+                             nullptr,
+                             opt_pose[i - 1].data(),
+                             opt_speed_bias[i - 1].data(),
+                             opt_pose[i].data(),
+                             opt_speed_bias[i].data());
   }
 
   ceres::Solver::Options options;
@@ -147,11 +148,11 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   std::vector<Eigen::Matrix<double, 7, 1>> opt_pose(window_size);
   std::vector<Eigen::Matrix<double, 9, 1>> opt_speed_bias(window_size);
   for (size_t i = 0; i < window_size; i++) {
-    const Eigen::Quaterniond& Qwb = window[i]->Qwb();
-    const Eigen::Vector3d& twb = window[i]->twb();
-    const Eigen::Vector3d& velocity = window[i]->velocity();
-    const Eigen::Vector3d& ba = window[i]->Ba();
-    const Eigen::Vector3d& bg = window[i]->Bg();
+    const Eigen::Quaterniond &Qwb = window[i]->Qwb();
+    const Eigen::Vector3d &twb = window[i]->twb();
+    const Eigen::Vector3d &velocity = window[i]->velocity();
+    const Eigen::Vector3d &ba = window[i]->Ba();
+    const Eigen::Vector3d &bg = window[i]->Bg();
     opt_pose[i] << twb.x(), twb.y(), twb.z(), Qwb.x(), Qwb.y(), Qwb.z(), Qwb.w();
     opt_speed_bias[i] << velocity.x(), velocity.y(), velocity.z(), ba.x(), ba.y(), ba.z(), bg.x(), bg.y(), bg.z();
   }
@@ -169,7 +170,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   problem_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
   // construct problem add parameter
   //    ceres::LocalParameterization* local_para = new PoseLocalParameterization();
-  ceres::Manifold* local_para = new PoseLocalManifold();
+  ceres::Manifold *local_para = new PoseLocalManifold();
   for (size_t i = 0; i < problem_num; i++) {
     problem_list.emplace_back(problem_options);
     for (size_t j = 0; j < window_size; j++) {
@@ -179,11 +180,11 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   }
 
   // construct imu factors
-  std::vector<IMUFactor*> imu_factors;
+  std::vector<IMUFactor *> imu_factors;
   for (size_t i = 1; i < window_size; i++) imu_factors.emplace_back(new IMUFactor(window[i]->integration_.get()));
 
   // construct event factors
-  std::vector<EventFactor*> event_factors;
+  std::vector<EventFactor *> event_factors;
   // sample N indices
   std::set<size_t> set_samples;
   std::random_device rd;
@@ -194,22 +195,24 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   int negative_num = 0;
   for (auto iter = set_samples.begin(); iter != set_samples.end(); iter++) {
     for (size_t i = 0; i < window_size; i++) {
-      std::tuple<TimeSurface::PolarType, double> res =
-          TimeSurface::determinePolarAndWeight(cloud->at(*iter), window[i]->last_frame_->Twb(), window[i]->Twb());
-      res = std::make_tuple(TimeSurface::PolarType::DISTANCE_FIELD, 1);
-      if (std::get<0>(res) == TimeSurface::PolarType::POSITIVE)
-        positive_num++;
-      else if (std::get<0>(res) == TimeSurface::PolarType::NEGATIVE)
-        negative_num++;
-      event_factors.emplace_back(new EventFactor(cloud->at(*iter), window[i]->time_surface_observation_, patch_size_X_,
-                                                 patch_size_Y_, std::get<0>(res), std::get<1>(res)));
+//      std::tuple<TimeSurface::PolarType, double> res =
+//          TimeSurface::determinePolarAndWeight(cloud->at(*iter), window[i]->last_frame_->Twb(), window[i]->Twb());
+//      res = std::make_tuple(TimeSurface::PolarType::DISTANCE_FIELD, 1);
+//      if (std::get<0>(res) == TimeSurface::PolarType::POSITIVE)
+//        positive_num++;
+//      else if (std::get<0>(res) == TimeSurface::PolarType::NEGATIVE)
+//        negative_num++;
+      event_factors.emplace_back(new EventFactor(cloud->at(*iter),
+                                                 window[i]->time_surface_observation_,
+                                                 patch_size_X_,
+                                                 patch_size_Y_,
+                                                 TimeSurface::PolarType::NEUTRAL,
+                                                 TimeSurface::FieldType::INV_TIME_SURFACE));
     }
-    LOG(INFO) << "positive_num:" << positive_num;
-    LOG(INFO) << "negative_num:" << negative_num;
   }
 
   // add imu residuals
-  for (auto& problem : problem_list) {
+  for (auto &problem : problem_list) {
     for (size_t i = 1; i < window_size; i++) {
       problem.AddResidualBlock(imu_factors[i - 1], nullptr, opt_pose[i - 1].data(), opt_speed_bias[i - 1].data(),
                                opt_pose[i].data(), opt_speed_bias[i].data());
@@ -217,7 +220,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   }
 
   // add event residuals
-  ceres::LossFunction* event_loss_function = new ceres::HuberLoss(10);
+  ceres::LossFunction *event_loss_function = new ceres::HuberLoss(10);
   size_t batch_residual_num = window_size * num_points_in_batch;
   for (size_t i = 0; i < event_factors.size(); i++) {
     size_t problem_index = i / batch_residual_num;
@@ -262,7 +265,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   return true;
 }
 
-bool Optimizer::OptimizeVelovityBias(const std::vector<Frame::Ptr>& window) {
+bool Optimizer::OptimizeVelovityBias(const std::vector<Frame::Ptr> &window) {
   LOG(INFO) << "init start";
   size_t window_size = window.size();
   std::vector<Eigen::Matrix<double, 7, 1>> opt_pose(window_size);
@@ -270,15 +273,15 @@ bool Optimizer::OptimizeVelovityBias(const std::vector<Frame::Ptr>& window) {
 
   ceres::Problem problem;
   for (size_t i = 0; i < window.size(); i++) {
-    const Eigen::Quaterniond& Qwb = window[i]->Qwb();
-    const Eigen::Vector3d& twb = window[i]->twb();
-    const Eigen::Vector3d& velocity = window[i]->velocity();
-    const Eigen::Vector3d& ba = window[i]->Ba();
-    const Eigen::Vector3d& bg = window[i]->Bg();
+    const Eigen::Quaterniond &Qwb = window[i]->Qwb();
+    const Eigen::Vector3d &twb = window[i]->twb();
+    const Eigen::Vector3d &velocity = window[i]->velocity();
+    const Eigen::Vector3d &ba = window[i]->Ba();
+    const Eigen::Vector3d &bg = window[i]->Bg();
 
     opt_pose[i] << twb.x(), twb.y(), twb.z(), Qwb.x(), Qwb.y(), Qwb.z(), Qwb.w();
     opt_speed_bias[i] << velocity.x(), velocity.y(), velocity.z(), ba.x(), ba.y(), ba.z(), bg.x(), bg.y(), bg.z();
-    PoseLocalManifold* local_para = new PoseLocalManifold();
+    PoseLocalManifold *local_para = new PoseLocalManifold();
     //        ceres::LocalParameterization* local_para = new PoseLocalParameterization();
 
     problem.AddParameterBlock(opt_pose[i].data(), 7, local_para);
@@ -315,15 +318,15 @@ bool Optimizer::OptimizeVelovityBias(const std::vector<Frame::Ptr>& window) {
   return true;
 }
 
-bool Optimizer::initVelocityBias(const std::vector<Frame::Ptr>& window) {
+bool Optimizer::initVelocityBias(const std::vector<Frame::Ptr> &window) {
   // solve gyroscope bias
   {
     Eigen::Matrix3d A = Eigen::Matrix3d::Zero();
     Eigen::Vector3d b = Eigen::Vector3d::Zero();
     Eigen::Vector3d delta_bg = Eigen::Vector3d::Zero();
     for (size_t i = 1; i < window.size(); i++) {
-      const Frame::Ptr& frame_i = window[i - 1];
-      const Frame::Ptr& frame_j = window[i];
+      const Frame::Ptr &frame_i = window[i - 1];
+      const Frame::Ptr &frame_j = window[i];
 
       Eigen::Quaterniond q_ij(frame_i->Qwb().conjugate() * frame_j->Qwb());
 
@@ -413,8 +416,8 @@ bool Optimizer::initVelocityBias(const std::vector<Frame::Ptr>& window) {
     b.setZero();
     std::cout << window.size() << std::endl;
     for (size_t i = 0; i < window.size() - 1; i++) {
-      const Frame::Ptr& frame_i = window[i];
-      const Frame::Ptr& frame_j = window[i + 1];
+      const Frame::Ptr &frame_i = window[i];
+      const Frame::Ptr &frame_j = window[i + 1];
 
       Eigen::Matrix3d R_bi_w = frame_i->Rwb().transpose();
       double delta_t = frame_j->integration_->dt;
@@ -424,7 +427,7 @@ bool Optimizer::initVelocityBias(const std::vector<Frame::Ptr>& window) {
       tmp_A.block<3, 3>(0, 0) = R_bi_w * delta_t;
       tmp_A.block<3, 3>(0, 3) = Eigen::Matrix3d::Zero();
       tmp_b.block<3, 1>(0, 0) = R_bi_w * (frame_j->twb() - frame_i->twb()) +
-                                R_bi_w * IntegrationBase::G * delta_t * delta_t / 2.0 - frame_j->integration_->delta_p;
+          R_bi_w * IntegrationBase::G * delta_t * delta_t / 2.0 - frame_j->integration_->delta_p;
 
       tmp_A.block<3, 3>(3, 0) = R_bi_w;
       tmp_A.block<3, 3>(3, 3) = -R_bi_w;

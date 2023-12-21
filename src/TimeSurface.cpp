@@ -21,32 +21,60 @@ cv::Mat TimeSurface::history_negative_event_ = cv::Mat();
 
 TimeSurface::TimeSurface(double time_stamp, double decay_factor)
     : time_stamp_(time_stamp), decay_factor_(decay_factor) {
-  processTimeSurface(history_event_, time_stamp, decay_factor_, time_surface_, inverse_time_surface_,
-                     gradX_inverse_time_surface_, gradY_inverse_time_surface_);
+  processTimeSurface(history_event_,
+                     time_stamp,
+                     decay_factor_,
+                     neutral_visualization_fields_[VisualizationType::TIME_SURFACE],
+                     neutral_fields_[FieldType::INV_TIME_SURFACE]);
 
-  constructDistanceField(time_surface_, distance_field_, gradX_distance_field_, gradY_distance_field_, img_canny_);
+  processTimeSurface(history_positive_event_,
+                     time_stamp,
+                     decay_factor_,
+                     positive_visualization_fields_[VisualizationType::TIME_SURFACE],
+                     positive_fields_[FieldType::INV_TIME_SURFACE]);
 
-  processTimeSurface(history_positive_event_, time_stamp, decay_factor_, time_surface_positive_,
-                     inverse_time_surface_positive_, gradX_inverse_time_surface_positive_,
-                     gradY_inverse_time_surface_positive_);
-  constructDistanceField(time_surface_positive_, distance_field_positive_, gradX_distance_field_positive_, gradY_distance_field_positive_, img_canny_positive_);
+  processTimeSurface(history_negative_event_,
+                     time_stamp,
+                     decay_factor_,
+                     negative_visualization_fields_[VisualizationType::TIME_SURFACE],
+                     negative_fields_[FieldType::INV_TIME_SURFACE]);
 
-  processTimeSurface(history_negative_event_, time_stamp, decay_factor_, time_surface_negative_,
-                     inverse_time_surface_negative_, gradX_inverse_time_surface_negative_,
-                     gradY_inverse_time_surface_negative_);
-  constructDistanceField(time_surface_negative_, distance_field_negative_, gradX_distance_field_negative_, gradY_distance_field_negative_, img_canny_negative_);
+  constructDistanceField(neutral_visualization_fields_[VisualizationType::TIME_SURFACE],
+                         neutral_fields_[FieldType::DISTANCE_FIELD],
+                         neutral_visualization_fields_[VisualizationType::CANNY]);
+
+  constructDistanceField(positive_visualization_fields_[VisualizationType::TIME_SURFACE],
+                         positive_fields_[FieldType::DISTANCE_FIELD],
+                         positive_visualization_fields_[VisualizationType::CANNY]);
+
+  constructDistanceField(negative_visualization_fields_[VisualizationType::TIME_SURFACE],
+                         negative_fields_[FieldType::DISTANCE_FIELD],
+                         negative_visualization_fields_[VisualizationType::CANNY]);
 
 }
 
-void TimeSurface::processTimeSurface(const cv::Mat &history_event, double time_stamp, double decay_factor,
-                                     cv::Mat &time_surface, Eigen::MatrixXd &inverse_time_surface,
-                                     Eigen::MatrixXd &inverse_gradX, Eigen::MatrixXd &inverse_gradY) {
+void TimeSurface::processTimeSurface(const cv::Mat &history_event,
+                                     double time_stamp,
+                                     double decay_factor,
+                                     cv::Mat &time_surface,
+                                     CannyEVIT::OptField &inv_time_surface_field) {
   cv::exp((history_event - time_stamp) / decay_factor, time_surface);
   event_cam_->undistortImage(time_surface, time_surface);
   time_surface = time_surface * 255.0;
-  time_surface.convertTo(time_surface, CV_8U);
+//  cv::Point minIdx, maxIdx;
+//  double minVal, maxVal;
+//  cv::minMaxLoc(time_surface, &minVal, &maxVal, &minIdx, &maxIdx);
+//  std::cout << "before blur:" << std::endl;
+//  std::cout << "min_val:" << minVal << ",max_val" << maxVal << std::endl;
   cv::GaussianBlur(time_surface, time_surface, cv::Size(5, 5), 0.0);
+//  cv::minMaxLoc(time_surface, &minVal, &maxVal, &minIdx, &maxIdx);
+//  std::cout << "after blur:" << std::endl;
+//  std::cout << "min_val:" << minVal << ",max_val" << maxVal << std::endl;
+
+
   cv::Mat inverse_time_surface_cv = 255.0 - time_surface;
+
+//  time_surface.convertTo(time_surface, CV_8U);
   //    inverse_time_surface_cv = inverse_time_surface_cv / 255.0;
 
   // test
@@ -61,57 +89,54 @@ void TimeSurface::processTimeSurface(const cv::Mat &history_event, double time_s
   cv::Sobel(inverse_time_surface_cv, inverse_gradX_cv, CV_64F, 1, 0);
   cv::Sobel(inverse_time_surface_cv, inverse_gradY_cv, CV_64F, 0, 1);
 
-  cv::cv2eigen(inverse_time_surface_cv, inverse_time_surface);
-  cv::cv2eigen(inverse_gradX_cv, inverse_gradX);
-  cv::cv2eigen(inverse_gradY_cv, inverse_gradY);
-
+  cv::cv2eigen(inverse_time_surface_cv, inv_time_surface_field.field_);
+  cv::cv2eigen(inverse_gradX_cv, inv_time_surface_field.gradX_);
+  cv::cv2eigen(inverse_gradY_cv, inv_time_surface_field.gradY_);
 
 }
 
 void TimeSurface::constructDistanceField(const cv::Mat &time_surface,
-                                         Eigen::MatrixXd &distance_field,
-                                         Eigen::MatrixXd &gradX_distance_field,
-                                         Eigen::MatrixXd &gradY_distance_field,
-                                         cv::Mat& img) {
-  // test distance field
+                                         CannyEVIT::OptField &distance_field,
+                                         cv::Mat &visualization_img) {
+  // test distance field TODO: NEED TO ACCELERATE IT
   Eigen::MatrixXd time_surface_eigen;
   cv::cv2eigen(time_surface, time_surface_eigen);
   Eigen::ArrayXXd grad_x, grad_y, grad_mag;
   image_processing::sobel_mag(time_surface_eigen, grad_x, grad_y, grad_mag);
   std::vector<std::pair<int, int>> uv_edge;
-  image_processing::canny(grad_mag, grad_x, grad_y, uv_edge, 10);
+  image_processing::canny(grad_mag, grad_x, grad_y, uv_edge, 50);
   Eigen::ArrayXXd distance_field_tmp;
   image_processing::chebychevDistanceField(event_cam_->height(), event_cam_->width(), uv_edge, distance_field_tmp);
-  distance_field = distance_field_tmp;
+  distance_field.field_ = distance_field_tmp;
   Eigen::ArrayXXd gradX_distance_field_tmp, gradY_distance_field_tmp;
-  image_processing::sobel(distance_field_, gradX_distance_field_tmp, gradY_distance_field_tmp);
-  gradX_distance_field = gradX_distance_field_tmp;
-  gradY_distance_field = gradY_distance_field_tmp;
+  image_processing::sobel(distance_field.field_, gradX_distance_field_tmp, gradY_distance_field_tmp);
+  distance_field.gradX_ = gradX_distance_field_tmp;
+  distance_field.gradY_ = gradY_distance_field_tmp;
 
-  img = cv::Mat(event_cam_->height(), event_cam_->width(), CV_8U, cv::Scalar(0));
-  for (auto& pos: uv_edge)
-    img.at<uint8_t>(pos.first, pos.second) = 255;
+  visualization_img = cv::Mat(event_cam_->height(), event_cam_->width(), CV_8U, cv::Scalar(0.0));
+  for (auto &pos : uv_edge)
+    visualization_img.at<uint8_t>(pos.first, pos.second) = 255;
 }
 
-
-void TimeSurface::drawCloud(CannyEVIT::pCloud cloud, const Eigen::Matrix4d &Twc, const std::string &window_name,
-                            PolarType polarType, bool showGrad) {
-  cv::Mat img_drawing;
+void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
+                            const Eigen::Matrix4d &Twc,
+                            const std::string &window_name,
+                            PolarType polarType,
+                            VisualizationType visType,
+                            bool showGrad) {
+  std::unordered_map<VisualizationType, cv::Mat> *visualization_field_ptr;
   switch (polarType) {
-    case NEUTRAL:
-      img_drawing = time_surface_.clone();
+    case NEUTRAL:visualization_field_ptr = &neutral_visualization_fields_;
       break;
-    case POSITIVE:
-      img_drawing = time_surface_positive_.clone();
+    case POSITIVE:visualization_field_ptr = &positive_visualization_fields_;
       break;
-    case NEGATIVE:
-      img_drawing = time_surface_negative_.clone();
-      break;
-    case DISTANCE_FIELD:
-      img_drawing = img_canny_.clone();
+    case NEGATIVE:visualization_field_ptr = &negative_visualization_fields_;
       break;
   }
+  cv::Mat img_drawing = visualization_field_ptr->at(visType).clone();
+
   img_drawing.convertTo(img_drawing, CV_8UC1);
+//  img_drawing.convertTo(img_drawing, CV_32FC1);
   cv::cvtColor(img_drawing, img_drawing, cv::COLOR_GRAY2BGR);
 
   Eigen::Matrix3d Rwc = Twc.block<3, 3>(0, 0);
@@ -135,11 +160,10 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud, const Eigen::Matrix4d &Twc,
       cv::Point cv_normal2d_end(p_normal_end_2d.x(), p_normal_end_2d.y());
       cv::line(img_drawing, cvpt, cv_normal2d_end, CV_RGB(0, 255, 0));
     }
+
     cv::circle(img_drawing, cvpt, 0, CV_RGB(255, 0, 0), cv::FILLED);
   }
   cv::imshow(window_name, img_drawing);
-  cv::imshow(window_name + "_negative", img_canny_negative_);
-  cv::imshow(window_name + "_positive", img_canny_positive_);
 }
 
 bool TimeSurface::isValidPatch(Eigen::Vector2d &patchCentreCoord, Eigen::MatrixXi &mask, size_t wx, size_t wy) {
@@ -161,8 +185,12 @@ bool TimeSurface::isValidPatch(Eigen::Vector2d &patchCentreCoord, Eigen::MatrixX
   return true;
 }
 
-bool TimeSurface::patchInterpolation(const Eigen::MatrixXd &img, const Eigen::Vector2d &location, int wx, int wy,
-                                     Eigen::MatrixXd &patch, bool debug) {
+bool TimeSurface::patchInterpolation(const Eigen::MatrixXd &img,
+                                     const Eigen::Vector2d &location,
+                                     int wx,
+                                     int wy,
+                                     Eigen::MatrixXd &patch,
+                                     bool debug) {
   // compute SrcPatch_UpLeft coordinate and SrcPatch_DownRight coordinate
   // check patch bourndary is inside img boundary
   Eigen::Vector2i SrcPatch_UpLeft, SrcPatch_DownRight;
@@ -217,77 +245,81 @@ bool TimeSurface::patchInterpolation(const Eigen::MatrixXd &img, const Eigen::Ve
   return true;
 }
 
-Eigen::VectorXd TimeSurface::evaluate(const CannyEVIT::Point &p_w, const Eigen::Quaterniond &Qwb,
-                                      const Eigen::Vector3d &twb, int wx, int wy, PolarType polarType) {
+Eigen::VectorXd TimeSurface::evaluate(const CannyEVIT::Point &p_w,
+                                      const Eigen::Quaterniond &Qwb,
+                                      const Eigen::Vector3d &twb,
+                                      int wx,
+                                      int wy,
+                                      PolarType polarType,
+                                      FieldType fieldType) {
   Eigen::Vector3d point_world(p_w.x, p_w.y, p_w.z);
   Eigen::Vector3d point_body = Qwb.toRotationMatrix().transpose() * (point_world - twb);
   Eigen::Vector3d point_cam = event_cam_->Rcb() * point_body + event_cam_->tcb();
   Eigen::Vector2d uv = event_cam_->World2Cam(point_cam);
 
+  std::unordered_map<FieldType, OptField> *fields;
+  switch (polarType) {
+
+    case NEUTRAL:fields = &neutral_fields_;
+      break;
+    case POSITIVE:fields = &positive_fields_;
+      break;
+    case NEGATIVE:fields = &negative_fields_;
+      break;
+  }
+
+  OptField &opt_field = fields->at(fieldType);
   Eigen::MatrixXd tau1(wy, wx);
   if (!isValidPatch(uv, event_cam_->getUndistortRectifyMask(), wx, wy))
     tau1.setConstant(255.0);
   else {
-    bool success = false;
-    switch (polarType) {
-      case NEUTRAL:
-        success = patchInterpolation(inverse_time_surface_, uv, wx, wy, tau1, false);
-        break;
-      case POSITIVE:
-        success = patchInterpolation(inverse_time_surface_positive_, uv, wx, wy, tau1, false);
-        break;
-      case NEGATIVE:
-        success = patchInterpolation(inverse_time_surface_negative_, uv, wx, wy, tau1, false);
-        break;
-      case DISTANCE_FIELD:
-        success = patchInterpolation(distance_field_, uv, wx, wy, tau1, false);
-        break;
-    }
+    bool success = patchInterpolation(opt_field.field_, uv, wx, wy, tau1, false);
     if (!success) tau1.setConstant(255.0);
   }
   return tau1.reshaped();
 }
 
-Eigen::MatrixXd TimeSurface::df(const CannyEVIT::Point &p_w, const Eigen::Quaterniond &Qwb, const Eigen::Vector3d &twb,
-                                int wx, int wy, PolarType polarType) {
+Eigen::MatrixXd TimeSurface::df(const CannyEVIT::Point &p_w,
+                                const Eigen::Quaterniond &Qwb,
+                                const Eigen::Vector3d &twb,
+                                int wx,
+                                int wy,
+                                PolarType polarType,
+                                FieldType fieldType) {
   Eigen::MatrixXd jacobian(wx * wy, 6);
 
   Eigen::Vector3d point_world(p_w.x, p_w.y, p_w.z);
   Eigen::Vector3d point_body = Qwb.toRotationMatrix().transpose() * (point_world - twb);
   Eigen::Vector3d point_cam = event_cam_->Rcb() * point_body + event_cam_->tcb();
   Eigen::Vector2d uv = event_cam_->World2Cam(point_cam);
+
+  std::unordered_map<FieldType, OptField> *fields;
+  switch (polarType) {
+
+    case NEUTRAL:fields = &neutral_fields_;
+      break;
+    case POSITIVE:fields = &positive_fields_;
+      break;
+    case NEGATIVE:fields = &negative_fields_;
+      break;
+  }
+  OptField &opt_field = fields->at(fieldType);
   if (!isValidPatch(uv, event_cam_->getUndistortRectifyMask(), wx, wy))
     jacobian.setZero();
   else {
     Eigen::MatrixXd gx(wy, wx), gy(wy, wx);
     bool gx_success = false, gy_success = false;
-    switch (polarType) {
-      case NEUTRAL:
-        gx_success = patchInterpolation(gradX_inverse_time_surface_, uv, wx, wy, gx, false);
-        gy_success = patchInterpolation(gradY_inverse_time_surface_, uv, wx, wy, gy, false);
-        gx = gx / 8.0; gy = gy / 8.0;
-        break;
-      case POSITIVE:
-        gx_success = patchInterpolation(gradX_inverse_time_surface_positive_, uv, wx, wy, gx, false);
-        gy_success = patchInterpolation(gradY_inverse_time_surface_positive_, uv, wx, wy, gy, false);
-        gx = gx / 8.0; gy = gy / 8.0;
-        break;
-      case NEGATIVE:
-        gx_success = patchInterpolation(gradX_inverse_time_surface_negative_, uv, wx, wy, gx, false);
-        gy_success = patchInterpolation(gradY_inverse_time_surface_negative_, uv, wx, wy, gy, false);
-        gx = gx / 8.0; gy = gy / 8.0;
-        break;
-      case DISTANCE_FIELD:
-        gx_success = patchInterpolation(gradX_distance_field_, uv, wx, wy, gx, false);
-        gy_success = patchInterpolation(gradY_distance_field_, uv, wx, wy, gy, false);
-        break;
-    }
-
+    gx_success = patchInterpolation(opt_field.gradX_, uv, wx, wy, gx, false);
+    gy_success = patchInterpolation(opt_field.gradY_, uv, wx, wy, gy, false);
     if (!gx_success) gx.setZero();
     if (!gy_success) gy.setZero();
+
     Eigen::MatrixXd grad(2, wx * wy);
     grad.row(0) = gx.reshaped(1, wx * wy);
     grad.row(1) = gy.reshaped(1, wx * wy);
+
+    if(fieldType == INV_TIME_SURFACE) //TODO: MAKE ALL CONSISTENT
+      grad = grad / 8.0;
 
     Eigen::Matrix<double, 2, 3> duv_dPc;
     duv_dPc.setZero();

@@ -4,7 +4,6 @@
 #include "Util.h"
 using namespace CannyEVIT;
 
-
 void CannyEVIT::image_processing::canny(const Eigen::ArrayXXd &grad_mag,
                                         const Eigen::ArrayXXd &grad_x,
                                         const Eigen::ArrayXXd &grad_y,
@@ -74,11 +73,10 @@ void CannyEVIT::image_processing::canny(const Eigen::ArrayXXd &grad_mag,
         }
 
         // now check the size of the region
-         if( region->size() > 20 )
-         {
-           for (auto& pos: *region)
-             hl.emplace_back(pos);
-         }
+        if (region->size() > 20) {
+          for (auto &pos : *region)
+            hl.emplace_back(pos);
+        }
       }
 
       it++;

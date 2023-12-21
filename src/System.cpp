@@ -133,7 +133,12 @@ void System::GrabEventMsg(double time_stamp, size_t x, size_t y, bool polarity) 
   }
 }
 
-void System::GrabImuMsg(double time_stamp, double accX, double accY, double accZ, double gyrX, double gyrY,
+void System::GrabImuMsg(double time_stamp,
+                        double accX,
+                        double accY,
+                        double accZ,
+                        double gyrX,
+                        double gyrY,
                         double gyrZ) {
   {
     std::lock_guard<std::mutex> guard(data_mutex_);
@@ -143,9 +148,16 @@ void System::GrabImuMsg(double time_stamp, double accX, double accY, double accZ
   con_.notify_one();
 }
 
-void System::predictIMUPose(double dt, const Eigen::Vector3d &acc0, const Eigen::Vector3d &gyr0,
-                            const Eigen::Vector3d &acc1, const Eigen::Vector3d &gyr1, const Eigen::Vector3d &ba,
-                            const Eigen::Vector3d &bg, Eigen::Quaterniond &Q, Eigen::Vector3d &t, Eigen::Vector3d &v) {
+void System::predictIMUPose(double dt,
+                            const Eigen::Vector3d &acc0,
+                            const Eigen::Vector3d &gyr0,
+                            const Eigen::Vector3d &acc1,
+                            const Eigen::Vector3d &gyr1,
+                            const Eigen::Vector3d &ba,
+                            const Eigen::Vector3d &bg,
+                            Eigen::Quaterniond &Q,
+                            Eigen::Vector3d &t,
+                            Eigen::Vector3d &v) {
   Eigen::Vector3d un_acc_0 = Q * (acc0 - ba) - IntegrationBase::G;
   Eigen::Vector3d un_gyr = 0.5 * (gyr0 + gyr1) - bg;
   Q *= Utility::deltaQ(un_gyr * dt);
@@ -214,29 +226,36 @@ void System::process() {
           event_it++;
         }
         TimeSurface::Ptr first_time_surface_observation(new TimeSurface(start_time_, timeSurface_decay_factor_));
-        cv::imwrite(result_path_ + std::to_string(start_time_) + ".jpg", first_time_surface_observation->time_surface_);
         Frame::Ptr first_frame(new Frame(first_time_surface_observation, nullptr, event_cam_));
         first_frame->set_velocity(V0_);
         first_frame->set_Twb(R0_, t0_);
-        first_frame->time_surface_observation_->drawCloud(cloud_, first_frame->Twc(), "init_last_pose",
-                                                          TimeSurface::PolarType::NEUTRAL, true);
+        first_frame->time_surface_observation_->drawCloud(cloud_,
+                                                          first_frame->Twc(),
+                                                          "first_pose",
+                                                          TimeSurface::PolarType::NEUTRAL,
+                                                          TimeSurface::VisualizationType::TIME_SURFACE,
+                                                          true);
         optimizer_->OptimizeEventProblemCeres(cloud_, first_frame);
         first_frame->last_frame_ = nullptr;
-        first_frame->time_surface_observation_->drawCloud(cloud_, first_frame->Twc(), "after",
-                                                          TimeSurface::PolarType::NEUTRAL, true);
+        first_frame->time_surface_observation_->drawCloud(cloud_,
+                                                          first_frame->Twc(),
+                                                          "first_pose_after_optimization",
+                                                          TimeSurface::PolarType::NEUTRAL,
+                                                          TimeSurface::VisualizationType::TIME_SURFACE,
+                                                          true);
         Frame::Ptr last_frame = first_frame;
 
-        double time_interval = 1.0 / static_cast<double>(init_freq_);
         // localize first frame, first initial frame does not need integration
+        double time_interval = 1.0 / static_cast<double>(init_freq_);
         imu_t0_ = data.imuData.front().time_stamp_;
         acc0_ = data.imuData.front().acc_;
         gyr0_ = data.imuData.front().gyr_;
         double target_frame_timestamp = data.imuData.front().time_stamp_;
         last_frame = localizeFrameOnHighFreq(target_frame_timestamp, event_it, event_end, last_frame, time_interval);
-        last_frame->time_surface_observation_->drawCloud(cloud_, last_frame->Twc(), "init");
-        cv::waitKey(0);
+        last_frame->time_surface_observation_->drawCloud(cloud_, last_frame->Twc(), "init_frame");
         last_frame->last_frame_ = first_frame;
         initial_list.push_back(last_frame);
+        cv::waitKey(0);
 
         // localize on each frame
         for (size_t i = 0; i < frame_num_for_init_; i++) {
@@ -266,7 +285,7 @@ void System::process() {
         }
 
         // TODO: MAY REPLACE AS LINEAR SOLVER
-        //    optimizer_->OptimizeVelovityBias(initial_list);
+//        optimizer_->OptimizeVelovityBias(initial_list);
         // optimizer_->initVelocityBias(initial_list);
         for (auto iter = initial_list.rbegin(); iter != initial_list.rend(); iter++) {
           (*iter)->integration_->repropagate((*iter)->Ba(), (*iter)->Bg());
@@ -278,8 +297,9 @@ void System::process() {
       }
 
       case Tracking: {
-        auto event_it = data.eventData.begin();
+
         // make current time surface
+        auto event_it = data.eventData.begin();
         while (event_it != data.eventData.end()) {
           TimeSurface::updateHistoryEvent(*event_it);
           event_it++;
@@ -301,8 +321,16 @@ void System::process() {
           double dt = imu_iter->time_stamp_ - imu_t0_;
           current_integration->push_back(dt, imu_iter->acc_, imu_iter->gyr_);
 
-          predictIMUPose(dt, acc0_, gyr0_, imu_iter->acc_, imu_iter->gyr_, last_frame->Ba(), last_frame->Bg(), last_q,
-                         last_t, last_v);
+          predictIMUPose(dt,
+                         acc0_,
+                         gyr0_,
+                         imu_iter->acc_,
+                         imu_iter->gyr_,
+                         last_frame->Ba(),
+                         last_frame->Bg(),
+                         last_q,
+                         last_t,
+                         last_v);
 
           imu_t0_ = imu_iter->time_stamp_;
           acc0_ = imu_iter->acc_;
@@ -330,20 +358,37 @@ void System::process() {
 
         for (size_t i = 0; i < sliding_window_.size(); i++) {
           sliding_window_[i]->integration_->repropagate(sliding_window_[i]->Ba(), sliding_window_[i]->Bg());
-          if (i == 5) {
-            sliding_window_[i]->time_surface_observation_->drawCloud(
-                cloud_, sliding_window_[i]->Twc(), "positive" + std::to_string(i), TimeSurface::PolarType::POSITIVE);
-            sliding_window_[i]->time_surface_observation_->drawCloud(
-                cloud_, sliding_window_[i]->Twc(), "negative" + std::to_string(i), TimeSurface::PolarType::NEGATIVE);
-            sliding_window_[i]->time_surface_observation_->drawCloud(
-                cloud_, sliding_window_[i]->Twc(), std::to_string(i), TimeSurface::PolarType::DISTANCE_FIELD);
-          }
         }
+
+        // visualization
+        sliding_window_.back()->time_surface_observation_->drawCloud(
+            cloud_,
+            sliding_window_.back()->Twc(),
+            "last_frame_reprojection_in_positive",
+            TimeSurface::PolarType::POSITIVE,
+            TimeSurface::VisualizationType::CANNY);
+        sliding_window_.back()->time_surface_observation_->drawCloud(
+            cloud_,
+            sliding_window_.back()->Twc(),
+            "last_frame_reprojection_in_negative",
+            TimeSurface::PolarType::NEGATIVE,
+            TimeSurface::VisualizationType::CANNY);
+        sliding_window_.back()->time_surface_observation_->drawCloud(
+            cloud_,
+            sliding_window_.back()->Twc(),
+            "last_frame_reprojection_in_neutral",
+            TimeSurface::PolarType::NEUTRAL,
+            TimeSurface::VisualizationType::CANNY);
         cv::waitKey(10);
 
         if (sliding_window_.size() > window_size_) {
-          sliding_window_.front()
-              ->time_surface_observation_.reset();  // TODO: try to find another way to reduce memory burden
+          cv::imwrite(result_path_ + "/neutral/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
+                      sliding_window_.front()->time_surface_observation_->neutral_visualization_fields_[TimeSurface::VisualizationType::TIME_SURFACE]);
+          cv::imwrite(result_path_ + "/positive/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
+                      sliding_window_.front()->time_surface_observation_->positive_visualization_fields_[TimeSurface::VisualizationType::TIME_SURFACE]);
+          cv::imwrite(result_path_ + "/negative/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
+                      sliding_window_.front()->time_surface_observation_->negative_visualization_fields_[TimeSurface::VisualizationType::TIME_SURFACE]);
+          sliding_window_.front()->time_surface_observation_.reset();  // TODO: try to find another way to reduce memory burden
           history_frames_.emplace_back(std::move(sliding_window_.front()));
           sliding_window_.pop_front();
         }
@@ -353,8 +398,10 @@ void System::process() {
   }
 }
 
-Frame::Ptr System::localizeFrameOnHighFreq(double target_timestamp, std::vector<EventMsg>::iterator &iter,
-                                           const std::vector<EventMsg>::iterator &end, Frame::Ptr last_frame,
+Frame::Ptr System::localizeFrameOnHighFreq(double target_timestamp,
+                                           std::vector<EventMsg>::iterator &iter,
+                                           const std::vector<EventMsg>::iterator &end,
+                                           Frame::Ptr last_frame,
                                            double time_interval) {
   while (last_frame->time_stamp_ < target_timestamp && fabs(last_frame->time_stamp_ - target_timestamp) > 1e-4) {
     double cur_frame_timestamp = std::min(last_frame->time_stamp_ + time_interval, target_timestamp);

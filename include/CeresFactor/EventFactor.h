@@ -14,12 +14,18 @@ namespace CannyEVIT {
 class EventFactor : public ceres::CostFunction {
  public:
   EventFactor() = delete;
-  EventFactor(const Point &p_w, const TimeSurface::Ptr &time_surface, int wx, int wy,
-              TimeSurface::PolarType = TimeSurface::PolarType::NEUTRAL, double weight = 1.0);
+  EventFactor(const Point &p_w,
+              const TimeSurface::Ptr &time_surface,
+              int wx,
+              int wy,
+              TimeSurface::PolarType polar = TimeSurface::PolarType::NEUTRAL,
+              TimeSurface::FieldType field_type = TimeSurface::FieldType::INV_TIME_SURFACE,
+              double weight = 1.0);
 
   virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
 
   TimeSurface::PolarType polar_;
+  TimeSurface::FieldType field_type_;
   Point p_w_;
   TimeSurface::Ptr time_surface_;
   int wx_, wy_;
