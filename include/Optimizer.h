@@ -20,8 +20,11 @@ class Optimizer {
   Optimizer(const std::string& config_path, EventCamera::Ptr event_camera);
 
   bool OptimizeEventProblemCeres(pCloud cloud, Frame::Ptr frame);
-  bool OptimizeSlidingWindowProblemCeres(pCloud cloud, std::deque<Frame::Ptr> window);
-  bool OptimizeSlidingWindowProblemCeresBatch(pCloud cloud, std::deque<Frame::Ptr> window);
+  bool OptimizeSlidingWindowProblemCeres(pCloud cloud, std::deque<Frame::Ptr>& window);
+  bool OptimizeSlidingWindowProblemCeresBatch(pCloud cloud, std::deque<Frame::Ptr>& window);
+
+  bool OptimizeEventProblemEigen(pCloud cloud, Frame::Ptr frame);
+  bool OptimizeSlidingWindowProblemEigen(pCloud cloud, std::deque<Frame::Ptr>& window);
 
   bool OptimizeVelovityBias(const std::vector<Frame::Ptr>& window);
   bool initVelocityBias(const std::vector<Frame::Ptr>& window);
@@ -31,6 +34,7 @@ class Optimizer {
 
   int patch_size_X_;
   int patch_size_Y_;
+  bool polarity_prediction_;
 };
 
 }  // namespace CannyEVIT

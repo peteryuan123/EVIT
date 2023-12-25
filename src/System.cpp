@@ -235,7 +235,8 @@ void System::process() {
                                                           TimeSurface::PolarType::NEUTRAL,
                                                           TimeSurface::VisualizationType::TIME_SURFACE,
                                                           true);
-        optimizer_->OptimizeEventProblemCeres(cloud_, first_frame);
+//        optimizer_->OptimizeEventProblemCeres(cloud_, first_frame);
+        optimizer_->OptimizeEventProblemEigen(cloud_, first_frame);
         first_frame->last_frame_ = nullptr;
         first_frame->time_surface_observation_->drawCloud(cloud_,
                                                           first_frame->Twc(),
@@ -281,7 +282,7 @@ void System::process() {
           current_frame->last_frame_ = last_frame;
           initial_list.push_back(current_frame);
           last_frame = current_frame;
-          cv::waitKey(10);
+          cv::waitKey(0);
         }
 
         // TODO: MAY REPLACE AS LINEAR SOLVER
@@ -366,19 +367,19 @@ void System::process() {
             sliding_window_.back()->Twc(),
             "last_frame_reprojection_in_positive",
             TimeSurface::PolarType::POSITIVE,
-            TimeSurface::VisualizationType::CANNY);
+            TimeSurface::VisualizationType::TIME_SURFACE);
         sliding_window_.back()->time_surface_observation_->drawCloud(
             cloud_,
             sliding_window_.back()->Twc(),
             "last_frame_reprojection_in_negative",
             TimeSurface::PolarType::NEGATIVE,
-            TimeSurface::VisualizationType::CANNY);
+            TimeSurface::VisualizationType::TIME_SURFACE);
         sliding_window_.back()->time_surface_observation_->drawCloud(
             cloud_,
             sliding_window_.back()->Twc(),
             "last_frame_reprojection_in_neutral",
             TimeSurface::PolarType::NEUTRAL,
-            TimeSurface::VisualizationType::CANNY);
+            TimeSurface::VisualizationType::TIME_SURFACE);
         cv::waitKey(10);
 
         if (sliding_window_.size() > window_size_) {
@@ -413,7 +414,8 @@ Frame::Ptr System::localizeFrameOnHighFreq(double target_timestamp,
     Frame::Ptr cur_frame(new Frame(cur_time_surface_observation, nullptr, event_cam_));
     cur_frame->set_velocity(last_frame->velocity());
     cur_frame->set_Twb(last_frame->Twb());
-    optimizer_->OptimizeEventProblemCeres(cloud_, cur_frame);
+//    optimizer_->OptimizeEventProblemCeres(cloud_, cur_frame);
+    optimizer_->OptimizeEventProblemEigen(cloud_, cur_frame);
     last_frame = cur_frame;
   }
 

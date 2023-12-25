@@ -8,17 +8,21 @@
 #include <tuple>
 #include <utility>
 
+#include <unsupported/Eigen/NonLinearOptimization>
+
 #include "CeresFactor/EventAutoDiffFactor.h"
 #include "CeresFactor/EventFactor.h"
 #include "CeresFactor/ImuFactor.h"
 #include "Manifold/PoseLocalManifold.h"
 #include "Manifold/PoseLocalParameterization.h"
+
+#include "EigenOptimization/Problem/EventProblem.h"
 #include "Optimizer.h"
 
 using namespace CannyEVIT;
 
 Optimizer::Optimizer(const std::string &config_path, EventCamera::Ptr event_camera)
-    : event_camera_(std::move(event_camera)), patch_size_X_(0), patch_size_Y_(0) {
+    : event_camera_(std::move(event_camera)), patch_size_X_(0), patch_size_Y_(0), polarity_prediction_(false) {
   LOG(INFO) << "-------------- Optimizer --------------";
 
   cv::FileStorage fs(config_path, cv::FileStorage::READ);
@@ -30,8 +34,12 @@ Optimizer::Optimizer(const std::string &config_path, EventCamera::Ptr event_came
   if (fs["patch_size_Y"].isNone()) LOG(ERROR) << "config: patch_size_Y is not set";
   patch_size_Y_ = fs["patch_size_Y"];
 
+  if (fs["polarity_prediction"].isNone()) LOG(ERROR) << "config: polarity_prediction is not set";
+  polarity_prediction_ = static_cast<int>(fs["polarity_prediction"]);
+
   LOG(INFO) << "patch_size_X:" << patch_size_X_;
   LOG(INFO) << "patch_size_Y:" << patch_size_Y_;
+  LOG(INFO) << "polarity_prediction_:" << polarity_prediction_;
 }
 
 bool Optimizer::OptimizeEventProblemCeres(CannyEVIT::pCloud cloud, Frame::Ptr frame) {
@@ -74,7 +82,7 @@ bool Optimizer::OptimizeEventProblemCeres(CannyEVIT::pCloud cloud, Frame::Ptr fr
   return true;
 }
 
-bool Optimizer::OptimizeSlidingWindowProblemCeres(CannyEVIT::pCloud cloud, std::deque<Frame::Ptr> window) {
+bool Optimizer::OptimizeSlidingWindowProblemCeres(CannyEVIT::pCloud cloud, std::deque<Frame::Ptr>& window) {
   ceres::Problem problem;
   ceres::LossFunction *loss_function;
   loss_function = new ceres::HuberLoss(10);
@@ -142,7 +150,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeres(CannyEVIT::pCloud cloud, std::
   return true;
 }
 
-bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, std::deque<Frame::Ptr> window) {
+bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, std::deque<Frame::Ptr>& window) {
   // opt variable
   size_t window_size = window.size();
   std::vector<Eigen::Matrix<double, 7, 1>> opt_pose(window_size);
@@ -195,8 +203,8 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   int negative_num = 0;
   for (auto iter = set_samples.begin(); iter != set_samples.end(); iter++) {
     for (size_t i = 0; i < window_size; i++) {
-//      std::tuple<TimeSurface::PolarType, double> res =
-//          TimeSurface::determinePolarAndWeight(cloud->at(*iter), window[i]->last_frame_->Twb(), window[i]->Twb());
+      std::tuple<TimeSurface::PolarType, double>
+          res = TimeSurface::determinePolarAndWeight(cloud->at(*iter), window[i]->last_frame_->Twb(), window[i]->Twb());
 //      res = std::make_tuple(TimeSurface::PolarType::DISTANCE_FIELD, 1);
 //      if (std::get<0>(res) == TimeSurface::PolarType::POSITIVE)
 //        positive_num++;
@@ -206,8 +214,9 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
                                                  window[i]->time_surface_observation_,
                                                  patch_size_X_,
                                                  patch_size_Y_,
-                                                 TimeSurface::PolarType::NEUTRAL,
-                                                 TimeSurface::FieldType::INV_TIME_SURFACE));
+                                                 std::get<0>(res),
+                                                 TimeSurface::FieldType::INV_TIME_SURFACE,
+                                                 std::get<1>(res)));
     }
   }
 
@@ -235,6 +244,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   //    options.minimizer_progress_to_stdout = true;
   //    options.use_nonmonotonic_steps = true;
   options.linear_solver_type = ceres::DENSE_SCHUR;
+//  options.jacobi_scaling = false;
   options.max_num_iterations = 1;
   ceres::TerminationType cur_state = ceres::TerminationType::NO_CONVERGENCE;
   // batch Optimization
@@ -261,6 +271,56 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   for (auto p : event_factors) delete p;
   for (auto p : imu_factors) delete p;
   std::cout << "done" << std::endl;
+
+  return true;
+}
+
+
+bool Optimizer::OptimizeEventProblemEigen(pCloud cloud, Frame::Ptr frame) {
+  EventProblemConfig event_problem_config(patch_size_X_, patch_size_Y_);
+
+  EventProblemLM problem(event_problem_config);
+  problem.setProblem(frame, cloud);
+
+  Eigen::LevenbergMarquardt<EventProblemLM, double> lm(problem);
+  lm.resetParameters();
+  lm.parameters.ftol = 1e-3;
+  lm.parameters.xtol = 1e-3;
+  lm.parameters.maxfev = event_problem_config.max_iteration_ * 8; // maximum number of function evaluation
+
+  size_t iteration = 0;
+  while(true)
+  {
+    if (iteration >= event_problem_config.max_iteration_)
+    {
+      LOG(INFO) << "max iteration reached, break";
+      break;
+    }
+
+    problem.nextBatch();
+    Eigen::VectorXd x(6);
+    x.fill(0.0);
+    if (lm.minimizeInit(x) == Eigen::LevenbergMarquardtSpace::ImproperInputParameters) {
+      LOG(ERROR) << "ImproperInputParameters for LM (Tracking).";
+      return false;
+    }
+
+    Eigen::LevenbergMarquardtSpace::Status status = lm.minimizeOneStep(x);
+    problem.addMotionUpdate(x);
+    iteration++;
+    if (status == Eigen::LevenbergMarquardtSpace::Status::RelativeErrorTooSmall ||
+        status == Eigen::LevenbergMarquardtSpace::Status::RelativeErrorAndReductionTooSmall)
+    {
+      LOG(INFO) << "Converged! break!";
+      break;
+    }
+  }
+
+  frame->set_Twb(problem.opt_Qwb_, problem.opt_twb_);
+  return true;
+}
+
+bool Optimizer::OptimizeSlidingWindowProblemEigen(pCloud cloud, std::deque<Frame::Ptr>& window) {
 
   return true;
 }

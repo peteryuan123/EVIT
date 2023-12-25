@@ -104,7 +104,7 @@ void TimeSurface::constructDistanceField(const cv::Mat &time_surface,
   Eigen::ArrayXXd grad_x, grad_y, grad_mag;
   image_processing::sobel_mag(time_surface_eigen, grad_x, grad_y, grad_mag);
   std::vector<std::pair<int, int>> uv_edge;
-  image_processing::canny(grad_mag, grad_x, grad_y, uv_edge, 50);
+  image_processing::canny(grad_mag, grad_x, grad_y, uv_edge, 45);
   Eigen::ArrayXXd distance_field_tmp;
   image_processing::chebychevDistanceField(event_cam_->height(), event_cam_->width(), uv_edge, distance_field_tmp);
   distance_field.field_ = distance_field_tmp;
@@ -149,15 +149,10 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
     cv::Point cvpt(p_2d.x(), p_2d.y());
 
     if (showGrad) {
-      Eigen::Vector3d p_normal(pt.x_gradient_, pt.y_gradient_, pt.z_gradient_);
-      Eigen::Vector3d p_normal_c = Rwc.transpose() * p_normal;
-      Eigen::Vector3d p_normal_end_c = pc + p_normal_c;
-      Eigen::Vector2d p_normal_end_2d = event_cam_->World2Cam(p_normal_end_c);
-      Eigen::Vector2d direction = p_normal_end_2d - p_2d;
-      direction.normalize();
-      direction = direction * 10;
-      p_normal_end_2d = p_2d + direction;
-      cv::Point cv_normal2d_end(p_normal_end_2d.x(), p_normal_end_2d.y());
+      Eigen::Vector3d p_gradient(pt.x_gradient_, pt.y_gradient_, pt.z_gradient_);
+      Eigen::Vector3d p_gradient_in_cam = Rwc.transpose() * (p_gradient - twc);
+      Eigen::Vector2d gradient_direction = event_cam_->projectDirection(pc, p_gradient_in_cam);
+      cv::Point cv_normal2d_end(p_2d.x() + 10 * gradient_direction.x(), p_2d.y() + 10 * gradient_direction.y());
       cv::line(img_drawing, cvpt, cv_normal2d_end, CV_RGB(0, 255, 0));
     }
 
@@ -378,14 +373,8 @@ std::tuple<TimeSurface::PolarType, double> TimeSurface::determinePolarAndWeight(
   Eigen::Vector3d p_cam_predict = T_predict.block<3, 3>(0, 0) * p_world + T_predict.block<3, 1>(0, 3);
   Eigen::Vector3d p_gradient_cam_current = T_current.block<3, 3>(0, 0) * p_gradient_world + T_current.block<3, 1>(0, 3);
 
-  Eigen::Vector2d uv_current = event_cam_->World2Cam(p_cam_current);
-  Eigen::Vector2d uv_predict = event_cam_->World2Cam(p_cam_predict);
-  Eigen::Vector2d uv_gradient_current = event_cam_->World2Cam(p_gradient_cam_current);
-
-  Eigen::Vector2d flow = uv_predict - uv_current;
-  Eigen::Vector2d gradient = uv_gradient_current - uv_current;
-  flow.normalize();
-  gradient.normalize();
+  Eigen::Vector2d flow = event_cam_->projectDirection(p_cam_predict, p_cam_current);
+  Eigen::Vector2d gradient = event_cam_->projectDirection(p_gradient_cam_current, p_cam_current);
 
   // gradient is the pixel value increasing direction
   // if the flow is at the opposite direction of gradient, the positive event is triggered

@@ -19,14 +19,19 @@ class EventCamera {
   typedef std::shared_ptr<EventCamera const> ConstPtr;
 
  public:
-  EventCamera(std::string configPath);
+  explicit EventCamera(std::string configPath);
   ~EventCamera() = default;
 
-  void undistortImage(const cv::Mat& src, cv::Mat& dest);
+  void undistortImage(const cv::Mat &src, cv::Mat &dest);
 
-  inline Eigen::Vector2d World2Cam(const Eigen::Vector3d& p) {
+  inline Eigen::Vector2d World2Cam(const Eigen::Vector3d &p) {
     Eigen::Vector3d x_homo = P_.block<3, 3>(0, 0) * p + P_.block<3, 1>(0, 3);
     return x_homo.head(2) / x_homo(2);
+  }
+
+  inline Eigen::Vector2d projectDirection(const Eigen::Vector3d &start_point, const Eigen::Vector3d &end_point) {
+    return Eigen::Vector2d(P_(0, 0) * (end_point.x() / end_point.z() - start_point.x() / start_point.z()),
+                           P_(1, 1) * (end_point.y() / end_point.z() - start_point.y() / start_point.z())).normalized();
   }
 
  public:
@@ -46,7 +51,7 @@ class EventCamera {
  public:
   inline Eigen::Matrix<double, 3, 4> getProjectionMatrix() { return P_; }
 
-  inline Eigen::MatrixXi& getUndistortRectifyMask() { return undistort_recitify_mask_; }
+  inline Eigen::MatrixXi &getUndistortRectifyMask() { return undistort_recitify_mask_; }
 
   inline int width() { return width_; }
 

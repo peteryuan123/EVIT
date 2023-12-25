@@ -75,14 +75,24 @@ EventCamera::EventCamera(std::string config_path)
       }
       // Fix Bug: cannot mix opencv version with ros node, otherwise assertion may appear here
       // make sure opencv version in EVIT is consistent with ros node
-      cv::initUndistortRectifyMap(K, distortion_parameter_, cv::Mat::eye(3, 3, CV_32F), P, cv::Size(width_, height_),
-                                  CV_32F, undistortion_map1_, undistortion_map2_);
+      cv::initUndistortRectifyMap(K,
+                                  distortion_parameter_,
+                                  cv::Mat::eye(3, 3, CV_32F),
+                                  P,
+                                  cv::Size(width_, height_),
+                                  CV_32F,
+                                  undistortion_map1_,
+                                  undistortion_map2_);
     } else if (distortion_type == "equidistant") {
       distortion_type_ = EQUIDISTANT;
       cv::Mat P;
       if (fs["P"].isNone()) {
-        cv::fisheye::estimateNewCameraMatrixForUndistortRectify(K, distortion_parameter_, cv::Size(width_, height_),
-                                                                cv::Mat::eye(3, 3, CV_32F), P, 1);
+        cv::fisheye::estimateNewCameraMatrixForUndistortRectify(K,
+                                                                distortion_parameter_,
+                                                                cv::Size(width_, height_),
+                                                                cv::Mat::eye(3, 3, CV_32F),
+                                                                P,
+                                                                1);
         Eigen::Matrix3d Keigen;
         cv::cv2eigen(P, Keigen);
         P_.block<3, 3>(0, 0) = Keigen;
@@ -91,8 +101,14 @@ EventCamera::EventCamera(std::string config_path)
         cv::cv2eigen(P, P_);
       }
 
-      cv::fisheye::initUndistortRectifyMap(K, distortion_parameter_, cv::Mat::eye(3, 3, CV_32F), P,
-                                           cv::Size(width_, height_), CV_32F, undistortion_map1_, undistortion_map2_);
+      cv::fisheye::initUndistortRectifyMap(K,
+                                           distortion_parameter_,
+                                           cv::Mat::eye(3, 3, CV_32F),
+                                           P,
+                                           cv::Size(width_, height_),
+                                           CV_32F,
+                                           undistortion_map1_,
+                                           undistortion_map2_);
     } else
       LOG(FATAL) << "[EventCam]:Unspport type:" + distortion_type;
 
@@ -116,7 +132,7 @@ EventCamera::EventCamera(std::string config_path)
   }
 }
 
-void EventCamera::undistortImage(const cv::Mat& src, cv::Mat& dest) {
+void EventCamera::undistortImage(const cv::Mat &src, cv::Mat &dest) {
 #ifdef OPENCV3_FOUND
   cv::remap(src, dest, undistortion_map1_, undistortion_map2_, CV_INTER_LINEAR);
 #else

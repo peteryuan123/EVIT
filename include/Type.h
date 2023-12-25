@@ -62,7 +62,10 @@ struct FrameData {
   std::vector<EventMsg> eventData;
 };
 
+enum LossFunctionType {L2, Huber};
+
 typedef std::shared_ptr<std::vector<Point>> pCloud;  // TODO: this is for temporary, define a cloud structure instead
+
 
 }  // namespace CannyEVIT
 #endif  // EVIT_NEW_TYPE_H
