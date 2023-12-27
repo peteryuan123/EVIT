@@ -12,7 +12,7 @@ else()
 endif()
 
 add_definitions(-D_LOG_ALL)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare")
 
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIRS})
@@ -44,12 +44,15 @@ set(SRC_FILE
         src/Manifold/PoseLocalParameterization.cpp
         src/Manifold/PoseLocalManifold.cpp
 
+        src/EigenOptimization/Factor/ResidualEventItem.cpp
         src/EigenOptimization/Problem/EventProblem.cpp
 
         src/imageProcessing/distanceField.cpp
         src/imageProcessing/canny.cpp
         src/imageProcessing/sobel.cpp
         src/imageProcessing/image_processing.cpp
+        src/EigenOptimization/Factor/ResidualImuItem.cpp
+        src/EigenOptimization/Problem/SlidingWindowProblem.cpp
 )
 
 
@@ -70,13 +73,15 @@ set(INCLUDE_FILE
         include/Manifold/PoseLocalParameterization.h
         include/Manifold/PoseLocalManifold.h
 
-        include/EigenOptimization/Problem/EventProblem.h
         include/EigenOptimization/Factor/ResidualEventItem.h
+        include/EigenOptimization/Factor/ResidualImuItem.h
+        include/EigenOptimization/Problem/EventProblem.h
 
         include/imageProcessing/canny.h
         include/imageProcessing/distanceField.h
         include/imageProcessing/sobel.h
         include/imageProcessing/image_processing.h
+        include/EigenOptimization/Problem/SlidingWindowProblem.h
 )
 
 # library

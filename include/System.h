@@ -89,7 +89,7 @@ class System {
   double timeSurface_decay_factor_;
   size_t imu_num_for_frame_;
   size_t window_size_;
-
+  TimeSurface::VisualizationType viz_type_;
   size_t imu_num_for_init_frame_;
   size_t frame_num_for_init_;
   int init_freq_;

@@ -91,6 +91,15 @@ void System::readParam(const std::string &config_path) {
     if (fs["init_freq"].isNone()) LOG(ERROR) << "config: init_freq is not set";
     init_freq_ = fs["init_freq"];
 
+    if (fs["field_type"].isNone()) LOG(ERROR) << "config: field_type is not set";
+    if (fs["field_type"].string() == "distance_field")
+      viz_type_ = TimeSurface::VisualizationType::CANNY;
+    else if (fs["field_type"].string() == "inv_time_surface")
+      viz_type_ = TimeSurface::VisualizationType::TIME_SURFACE;
+    else
+      LOG(ERROR) << "Unsupported field type";
+
+
     if (!fs["log_dir"].isNone()) FLAGS_log_dir = fs["log_dir"].string();
     if (!fs["log_color"].isNone()) FLAGS_colorlogtostderr = static_cast<int>(fs["log_color"]);
     if (!fs["log_also_to_stderr"].isNone()) FLAGS_alsologtostderr = static_cast<int>(fs["log_also_to_stderr"]);
@@ -178,7 +187,7 @@ bool System::getMeasurement(FrameData &data) {
         data.imuData.emplace_back(imu_deque_.front());
         imu_deque_.pop_front();
       }
-      while (event_deque_.front().time_stamp_ < data.imuData.back().time_stamp_) {
+      while (event_deque_.front().time_stamp_ <= data.imuData.back().time_stamp_) {
         data.eventData.emplace_back(event_deque_.front());
         event_deque_.pop_front();
       }
@@ -194,7 +203,7 @@ bool System::getMeasurement(FrameData &data) {
         data.imuData.emplace_back(imu_deque_.front());
         imu_deque_.pop_front();
       }
-      while (event_deque_.front().time_stamp_ < data.imuData.back().time_stamp_) {
+      while (event_deque_.front().time_stamp_ <= data.imuData.back().time_stamp_) {
         data.eventData.emplace_back(event_deque_.front());
         event_deque_.pop_front();
       }
@@ -233,16 +242,16 @@ void System::process() {
                                                           first_frame->Twc(),
                                                           "first_pose",
                                                           TimeSurface::PolarType::NEUTRAL,
-                                                          TimeSurface::VisualizationType::TIME_SURFACE,
+                                                          viz_type_,
                                                           true);
-//        optimizer_->OptimizeEventProblemCeres(cloud_, first_frame);
-        optimizer_->OptimizeEventProblemEigen(cloud_, first_frame);
+        optimizer_->OptimizeEventProblemCeres(cloud_, first_frame);
+//        optimizer_->OptimizeEventProblemEigen(cloud_, first_frame);
         first_frame->last_frame_ = nullptr;
         first_frame->time_surface_observation_->drawCloud(cloud_,
                                                           first_frame->Twc(),
                                                           "first_pose_after_optimization",
                                                           TimeSurface::PolarType::NEUTRAL,
-                                                          TimeSurface::VisualizationType::TIME_SURFACE,
+                                                          viz_type_,
                                                           true);
         Frame::Ptr last_frame = first_frame;
 
@@ -282,7 +291,7 @@ void System::process() {
           current_frame->last_frame_ = last_frame;
           initial_list.push_back(current_frame);
           last_frame = current_frame;
-          cv::waitKey(0);
+          cv::waitKey(10);
         }
 
         // TODO: MAY REPLACE AS LINEAR SOLVER
@@ -344,18 +353,13 @@ void System::process() {
         current_frame->set_Bg(last_bg);
         current_frame->last_frame_ = last_frame;
 
-        //        LOG(INFO) << "current frame:" << current_frame_time;
-        //        LOG(INFO) << "Last pose:\n" << current_frame->Twb();
         current_frame->time_surface_observation_->drawCloud(cloud_, last_frame->Twc(), "last_frame");
         current_frame->time_surface_observation_->drawCloud(cloud_, current_frame->Twc(), "pred_frame");
-        //                // Optimize here
-        //                optimizer_->OptimizeEventProblemCeres(cloud_, current_frame);
-        //                current_frame->time_surface_observation_->drawCloud(cloud_, current_frame->Twc(),
-        //                "after_frame"); LOG(INFO) << "Current pose:\n" << current_frame->Twb();
 
         sliding_window_.push_back(current_frame);
-        //                optimizer_->OptimizeSlidingWindowProblemCeres(cloud_, sliding_window_);
+//        optimizer_->OptimizeSlidingWindowProblemCeres(cloud_, sliding_window_);
         optimizer_->OptimizeSlidingWindowProblemCeresBatch(cloud_, sliding_window_);
+//        optimizer_->OptimizeSlidingWindowProblemEigen(cloud_, sliding_window_);
 
         for (size_t i = 0; i < sliding_window_.size(); i++) {
           sliding_window_[i]->integration_->repropagate(sliding_window_[i]->Ba(), sliding_window_[i]->Bg());
@@ -367,28 +371,28 @@ void System::process() {
             sliding_window_.back()->Twc(),
             "last_frame_reprojection_in_positive",
             TimeSurface::PolarType::POSITIVE,
-            TimeSurface::VisualizationType::TIME_SURFACE);
+            viz_type_);
         sliding_window_.back()->time_surface_observation_->drawCloud(
             cloud_,
             sliding_window_.back()->Twc(),
             "last_frame_reprojection_in_negative",
             TimeSurface::PolarType::NEGATIVE,
-            TimeSurface::VisualizationType::TIME_SURFACE);
+            viz_type_);
         sliding_window_.back()->time_surface_observation_->drawCloud(
             cloud_,
             sliding_window_.back()->Twc(),
             "last_frame_reprojection_in_neutral",
             TimeSurface::PolarType::NEUTRAL,
-            TimeSurface::VisualizationType::TIME_SURFACE);
+            viz_type_);
         cv::waitKey(10);
 
         if (sliding_window_.size() > window_size_) {
           cv::imwrite(result_path_ + "/neutral/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
-                      sliding_window_.front()->time_surface_observation_->neutral_visualization_fields_[TimeSurface::VisualizationType::TIME_SURFACE]);
+                      sliding_window_.front()->time_surface_observation_->neutral_visualization_fields_[viz_type_]);
           cv::imwrite(result_path_ + "/positive/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
-                      sliding_window_.front()->time_surface_observation_->positive_visualization_fields_[TimeSurface::VisualizationType::TIME_SURFACE]);
+                      sliding_window_.front()->time_surface_observation_->positive_visualization_fields_[viz_type_]);
           cv::imwrite(result_path_ + "/negative/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
-                      sliding_window_.front()->time_surface_observation_->negative_visualization_fields_[TimeSurface::VisualizationType::TIME_SURFACE]);
+                      sliding_window_.front()->time_surface_observation_->negative_visualization_fields_[viz_type_]);
           sliding_window_.front()->time_surface_observation_.reset();  // TODO: try to find another way to reduce memory burden
           history_frames_.emplace_back(std::move(sliding_window_.front()));
           sliding_window_.pop_front();
@@ -414,8 +418,8 @@ Frame::Ptr System::localizeFrameOnHighFreq(double target_timestamp,
     Frame::Ptr cur_frame(new Frame(cur_time_surface_observation, nullptr, event_cam_));
     cur_frame->set_velocity(last_frame->velocity());
     cur_frame->set_Twb(last_frame->Twb());
-//    optimizer_->OptimizeEventProblemCeres(cloud_, cur_frame);
-    optimizer_->OptimizeEventProblemEigen(cloud_, cur_frame);
+    optimizer_->OptimizeEventProblemCeres(cloud_, cur_frame);
+//    optimizer_->OptimizeEventProblemEigen(cloud_, cur_frame);
     last_frame = cur_frame;
   }
 

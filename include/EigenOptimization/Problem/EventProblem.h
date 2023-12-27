@@ -32,7 +32,7 @@ struct EventProblemConfig {
         max_iteration_(max_iteration),
         field_type_(field_type),
         loss_function_type_(loss_function_type),
-        predict_polarity_(predict_polarity){}
+        predict_polarity_(predict_polarity) {}
 
   size_t patch_size_x_, patch_size_y_;
   double huber_threshold_;
@@ -43,7 +43,6 @@ struct EventProblemConfig {
   TimeSurface::FieldType field_type_;
   LossFunctionType loss_function_type_;
   bool predict_polarity_;
-
 };
 
 class EventProblemLM : public GenericFunctor<double> {
@@ -58,7 +57,7 @@ class EventProblemLM : public GenericFunctor<double> {
     size_t threadID;
   };
 
-  explicit EventProblemLM(const EventProblemConfig& config);
+  explicit EventProblemLM(const EventProblemConfig &config);
   ~EventProblemLM() = default;
 
   void setProblem(Frame::Ptr frame, const pCloud &cloud);
@@ -67,11 +66,10 @@ class EventProblemLM : public GenericFunctor<double> {
   int operator()(const Eigen::Matrix<double, 6, 1> &x, Eigen::VectorXd &fvec) const;
   int df(const Eigen::Matrix<double, 6, 1> &x, Eigen::MatrixXd &fjac) const;
   void addMotionUpdate(const Eigen::Matrix<double, 6, 1> &dx);
-  void addPerturbation(Eigen::Quaterniond &Qwb, Eigen::Vector3d &twb, const Eigen::Matrix<double, 6, 1> &x) const;
+  void addPerturbation(const Eigen::Matrix<double, 6, 1> &dx, Eigen::Quaterniond &Qwb, Eigen::Vector3d &twb) const;
 
-  void residualThread(Job &job) const;
-  void JacobianThread(Job &job) const;
-
+  void residualThread(Job &job, Eigen::VectorXd &fvec) const;
+  void JacobianThread(Job &job, Eigen::MatrixXd &fjac) const;
 
   pCloud cloud_;
   Frame::Ptr frame_;

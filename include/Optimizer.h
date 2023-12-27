@@ -32,9 +32,14 @@ class Optimizer {
  public:
   EventCamera::Ptr event_camera_;
 
+  // config param
   int patch_size_X_;
   int patch_size_Y_;
   bool polarity_prediction_;
+  size_t max_registration_point_;
+
+  TimeSurface::FieldType field_type_;
+
 };
 
 }  // namespace CannyEVIT
