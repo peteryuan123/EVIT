@@ -7,6 +7,7 @@ using namespace CannyEVIT;
 
 Frame::Frame(TimeSurface::Ptr time_surface_observation, IntegrationBase::Ptr integration, EventCamera::Ptr event_camera)
     : time_stamp_(time_surface_observation->time_stamp_),
+      is_active_(true),
       time_surface_observation_(time_surface_observation),
       last_frame_(nullptr),
       integration_(integration),
@@ -26,14 +27,18 @@ void Frame::optToState() {
   set_velocity(opt_speed_bias_.segment<3>(0));
   set_Ba(opt_speed_bias_.segment<3>(3));
   set_Bg(opt_speed_bias_.segment<3>(6));
+//  std::cout << twb_.transpose() << std::endl;
+//  std::cout << Qwb_.coeffs().transpose() << std::endl;
+//  std::cout << velocity_.transpose() << std::endl;
+//  std::cout << acc_bias_.transpose() << std::endl;
+//  std::cout << gyr_bias_.transpose() << std::endl;
+//  std::cout << "--------------" << std::endl;
 }
 
 void Frame::stateToOpt() {
-  opt_pose_.segment<3>(0) = twb_;
-  opt_pose_[3] = Qwb_.x(); opt_pose_[4] = Qwb_.y(); opt_pose_[5] = Qwb_.z(); opt_pose_[6] = Qwb_.w();
-  opt_speed_bias_.segment<3>(0) = velocity_;
-  opt_speed_bias_.segment<3>(3) = acc_bias_;
-  opt_speed_bias_.segment<3>(6) = gyr_bias_;
+  opt_pose_ << twb_.x(), twb_.y(), twb_.z(), Qwb_.x(), Qwb_.y(), Qwb_.z(), Qwb_.w();
+  opt_speed_bias_
+      << velocity_.x(), velocity_.y(), velocity_.z(), acc_bias_.x(), acc_bias_.y(), acc_bias_.z(), gyr_bias_.x(), gyr_bias_.y(), gyr_bias_.z();
 }
 
 // getter
@@ -59,7 +64,14 @@ Eigen::Vector3d Frame::Ba() { return acc_bias_; }
 
 Eigen::Vector3d Frame::Bg() { return gyr_bias_; }
 
+bool Frame::isActive(){
+  return is_active_;
+}
 // setter
+
+void Frame::set_active(bool active){
+  is_active_ = active;
+}
 
 void Frame::set_integration(const IntegrationBase::Ptr &integration) { integration_ = integration; }
 

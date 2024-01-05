@@ -149,7 +149,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeres(pCloud cloud, std::deque<Frame
   return true;
 }
 
-bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(pCloud cloud, std::deque<Frame::Ptr> &window) {
+bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, std::deque<Frame::Ptr> &window) {
   // opt variable
   size_t window_size = window.size();
   for (size_t i = 0; i < window_size; i++)
@@ -244,7 +244,6 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(pCloud cloud, std::deque<
     }
 
   }
-  cv::waitKey(0);
 
   // add imu residuals
   for (auto &problem : problem_list) {
@@ -260,10 +259,9 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(pCloud cloud, std::deque<
 
   // add event residuals
   ceres::LossFunction *event_loss_function = new ceres::HuberLoss(10);
-  size_t batch_residual_num = window_size * batch_size_;
   for (size_t i = 0; i < event_factors.size(); i++) {
-    size_t problem_index = i / batch_residual_num;
-    size_t pose_index = i % window_size;
+    size_t pose_index = i / optimized_points_num;
+    size_t problem_index = (i % optimized_points_num) / batch_size_;
     problem_list[problem_index].AddResidualBlock(event_factors[i],
                                                  event_loss_function,
                                                  window[pose_index]->opt_pose_.data());

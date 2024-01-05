@@ -62,6 +62,8 @@ class System {
                                      Frame::Ptr last_frame,
                                      double time_interval);
 
+  std::vector<Frame::Ptr> getAllFrames();
+
  public:
   pCloud cloud_;
   std::deque<EventMsg> event_deque_;
@@ -70,6 +72,7 @@ class System {
 
   // for sync
   std::mutex data_mutex_;
+  std::mutex viewer_mutex_;
   std::condition_variable con_;
 
   // for state

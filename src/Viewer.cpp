@@ -54,8 +54,8 @@ void Viewer::Run() {
 
   pangolin::CreatePanel("menu").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(175));
   pangolin::Var<bool> menuDrawGradient("menu.Draw Gradient", false, true);
-  pangolin::Var<bool> menuDrawIMU("menu.Draw IMU frame", false, true);
-  pangolin::Var<bool> menuDrawEvent("menu.Draw Event frame", false, true);
+  pangolin::Var<bool> menuDrawIMU("menu.Draw IMU frame", true, true);
+  pangolin::Var<bool> menuDrawEvent("menu.Draw Event frame", true, true);
 
   pangolin::Var<bool> menuStepByStep("menu.Step By Step", false, true);  // false, true
   pangolin::Var<bool> menuStep("menu.Step", false, false);
@@ -114,13 +114,13 @@ void Viewer::Run() {
     }
 
     // draw old frames
-
-//    for (int i = 0; i < system_->history_frames_.size(); i++)
-//      drawFrame(system_->history_frames_[i], menuDrawIMU, menuDrawEvent, false);
-//
-//    // draw tracked frame
-//    for (int i = 0; i < system_->sliding_window_.size(); i++)
-//      drawFrame(system_->sliding_window_[i], menuDrawIMU, menuDrawEvent, true);
+    std::vector<Frame::Ptr> frames = system_->getAllFrames();
+    for (const auto& frame: frames){
+      if (menuDrawIMU)
+        drawAxis(frame->Twb());
+      if (menuDrawEvent)
+        drawCamera(frame->Twc(), frame->isActive());
+    }
 
     pangolin::FinishFrame();
   }
@@ -133,7 +133,7 @@ void Viewer::drawCamera(const Eigen::Matrix4d &Twc, bool isActivate) {
   const float z = w * 0.6;
 
   glPushMatrix();
-  glMultMatrixf((GLfloat *) Twc.data());
+  glMultMatrixd((GLdouble *) Twc.data());
 
   glLineWidth(3.0);
   if (isActivate)
@@ -169,7 +169,7 @@ void Viewer::drawCamera(const Eigen::Matrix4d &Twc, bool isActivate) {
 void Viewer::drawAxis(const Eigen::Matrix4d &Twb) {
   const float &w = frame_size_;
   glPushMatrix();
-  glMultMatrixf((GLfloat *) Twb.data());
+  glMultMatrixd((GLdouble *) Twb.data());
   glBegin(GL_LINES);
   glColor3f(1.0, 0.0, 0.0);
   glVertex3f(0, 0, 0);

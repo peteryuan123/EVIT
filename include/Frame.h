@@ -27,6 +27,7 @@ class Frame {
  public:
   double time_stamp_;
 
+  bool is_active_;
   TimeSurface::Ptr time_surface_observation_;
   Frame::Ptr last_frame_;  // NOTE: use this in caution, do not result in cycle reference and try to optimize this
   IntegrationBase::Ptr integration_;
@@ -55,6 +56,7 @@ class Frame {
   Eigen::Vector3d velocity();
   Eigen::Vector3d Ba();
   Eigen::Vector3d Bg();
+  bool isActive();
 
   // setter
   void set_integration(const IntegrationBase::Ptr& integration);
@@ -68,6 +70,7 @@ class Frame {
   void set_velocity(const Eigen::Vector3d& velocity);
   void set_Ba(const Eigen::Vector3d& ba);
   void set_Bg(const Eigen::Vector3d& bg);
+  void set_active(bool active);
 };
 
 }  // namespace CannyEVIT

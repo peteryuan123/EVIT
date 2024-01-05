@@ -104,7 +104,6 @@ void System::readParam(const std::string &config_path) {
     else
       LOG(ERROR) << "Unsupported field type";
 
-
     if (!fs["log_dir"].isNone()) FLAGS_log_dir = fs["log_dir"].string();
     if (!fs["log_color"].isNone()) FLAGS_colorlogtostderr = static_cast<int>(fs["log_color"]);
     if (!fs["log_also_to_stderr"].isNone()) FLAGS_alsologtostderr = static_cast<int>(fs["log_also_to_stderr"]);
@@ -367,10 +366,20 @@ void System::process() {
         optimizer_->OptimizeSlidingWindowProblemCeresBatch(cloud_, sliding_window_);
 //        optimizer_->OptimizeSlidingWindowProblemEigen(cloud_, sliding_window_);
 
-        for (size_t i = 0; i < sliding_window_.size(); i++) {
-          sliding_window_[i]->optToState();
-          sliding_window_[i]->integration_->repropagate(sliding_window_[i]->Ba(), sliding_window_[i]->Bg());
+        {
+          std::lock_guard<std::mutex> guard(viewer_mutex_);
+          for (size_t i = 0; i < sliding_window_.size(); i++)
+            sliding_window_[i]->optToState();
+          if (sliding_window_.size() > window_size_) {
+            sliding_window_.front()->set_active(false);
+            sliding_window_.front()->time_surface_observation_.reset();  // TODO: try to find another way to reduce memory burden
+            history_frames_.emplace_back(std::move(sliding_window_.front()));
+            sliding_window_.pop_front();
+          }
         }
+
+        for (size_t i = 0; i < sliding_window_.size(); i++)
+          sliding_window_[i]->integration_->repropagate(sliding_window_[i]->Ba(), sliding_window_[i]->Bg());
 
         // visualization
         sliding_window_.back()->time_surface_observation_->drawCloud(
@@ -393,21 +402,25 @@ void System::process() {
             viz_type_);
         cv::waitKey(10);
 
-        if (sliding_window_.size() > window_size_) {
-          cv::imwrite(result_path_ + "/neutral/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
-                      sliding_window_.front()->time_surface_observation_->neutral_visualization_fields_[viz_type_]);
-          cv::imwrite(result_path_ + "/positive/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
-                      sliding_window_.front()->time_surface_observation_->positive_visualization_fields_[viz_type_]);
-          cv::imwrite(result_path_ + "/negative/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
-                      sliding_window_.front()->time_surface_observation_->negative_visualization_fields_[viz_type_]);
-          sliding_window_.front()->time_surface_observation_.reset();  // TODO: try to find another way to reduce memory burden
-          history_frames_.emplace_back(std::move(sliding_window_.front()));
-          sliding_window_.pop_front();
-        }
+//        if (sliding_window_.size() > window_size_) {
+//          cv::imwrite(result_path_ + "/neutral/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
+//                      sliding_window_.front()->time_surface_observation_->neutral_visualization_fields_[viz_type_]);
+//          cv::imwrite(result_path_ + "/positive/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
+//                      sliding_window_.front()->time_surface_observation_->positive_visualization_fields_[viz_type_]);
+//          cv::imwrite(result_path_ + "/negative/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
+//                      sliding_window_.front()->time_surface_observation_->negative_visualization_fields_[viz_type_]);
+//        }
         break;
       }
     }
   }
+}
+
+std::vector<Frame::Ptr> System::getAllFrames() {
+  std::lock_guard<std::mutex> guard(viewer_mutex_);
+  std::vector<Frame::Ptr> frames(history_frames_.begin(), history_frames_.end());
+  frames.insert(frames.end(), sliding_window_.begin(), sliding_window_.end());
+  return frames;
 }
 
 Frame::Ptr System::localizeFrameOnHighFreq(double target_timestamp,
