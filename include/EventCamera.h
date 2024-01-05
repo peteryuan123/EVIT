@@ -31,7 +31,7 @@ class EventCamera {
 
   inline Eigen::Vector2d projectDirection(const Eigen::Vector3d &start_point, const Eigen::Vector3d &end_point) {
     return Eigen::Vector2d(P_(0, 0) * (end_point.x() / end_point.z() - start_point.x() / start_point.z()),
-                           P_(1, 1) * (end_point.y() / end_point.z() - start_point.y() / start_point.z())).normalized();
+                           P_(1, 1) * (end_point.y() / end_point.z() - start_point.y() / start_point.z()));
   }
 
  public:

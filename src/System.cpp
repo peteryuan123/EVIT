@@ -32,14 +32,19 @@ System::System(const std::string &config_path)
 
   event_cam_.reset(new EventCamera(config_path));
   optimizer_.reset(new Optimizer(config_path, event_cam_));
+  viewer_ = new Viewer(config_path, this);
+
   TimeSurface::initTimeSurface(event_cam_);
   IntegrationBase::setCalib(config_path);
   thread_process_.reset(new std::thread(&System::process, this));
+  thread_viewer_.reset(new std::thread(&Viewer::Run, viewer_));
 }
 
 System::~System() {
   is_system_start_ = false;
   thread_process_->join();
+
+  delete viewer_;
 }
 
 void System::readParam(const std::string &config_path) {
@@ -246,6 +251,8 @@ void System::process() {
                                                           true);
         optimizer_->OptimizeEventProblemCeres(cloud_, first_frame);
 //        optimizer_->OptimizeEventProblemEigen(cloud_, first_frame);
+        first_frame->optToState();
+
         first_frame->last_frame_ = nullptr;
         first_frame->time_surface_observation_->drawCloud(cloud_,
                                                           first_frame->Twc(),
@@ -274,7 +281,6 @@ void System::process() {
               new IntegrationBase(acc0_, gyr0_, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()));
           for (size_t j = 0; j < imu_num_for_init_frame_; j++) {
             int index = i * imu_num_for_init_frame_ + j;
-            std::cout << index << std::endl;
             double dt = data.imuData[index].time_stamp_ - imu_t0_;
             target_integration->push_back(dt, data.imuData[index].acc_, data.imuData[index].gyr_);
             imu_t0_ = data.imuData[index].time_stamp_;
@@ -294,10 +300,10 @@ void System::process() {
           cv::waitKey(10);
         }
 
-        // TODO: MAY REPLACE AS LINEAR SOLVER
-//        optimizer_->OptimizeVelovityBias(initial_list);
+        optimizer_->OptimizeVelovityBias(initial_list);
         // optimizer_->initVelocityBias(initial_list);
         for (auto iter = initial_list.rbegin(); iter != initial_list.rend(); iter++) {
+          (*iter)->optToState();
           (*iter)->integration_->repropagate((*iter)->Ba(), (*iter)->Bg());
           sliding_window_.push_front(*iter);
           if (sliding_window_.size() == window_size_) break;
@@ -362,6 +368,7 @@ void System::process() {
 //        optimizer_->OptimizeSlidingWindowProblemEigen(cloud_, sliding_window_);
 
         for (size_t i = 0; i < sliding_window_.size(); i++) {
+//          sliding_window_[i]->optToState();
           sliding_window_[i]->integration_->repropagate(sliding_window_[i]->Ba(), sliding_window_[i]->Bg());
         }
 
@@ -420,6 +427,7 @@ Frame::Ptr System::localizeFrameOnHighFreq(double target_timestamp,
     cur_frame->set_Twb(last_frame->Twb());
     optimizer_->OptimizeEventProblemCeres(cloud_, cur_frame);
 //    optimizer_->OptimizeEventProblemEigen(cloud_, cur_frame);
+    cur_frame->optToState();
     last_frame = cur_frame;
   }
 

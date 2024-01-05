@@ -1,12 +1,12 @@
 <launch>
-    <arg name="config_path" default="/home/mpl/data/EVIT/robot/robot_fast.yaml"/>
+    <arg name="config_path" default="/home/mpl/data/EVIT/config/robot_fast.yaml"/>
     <arg name="imu_topic" default="/imu/data"/>
     <arg name="event_topic" default="/prophesee/left/events"/>
 
-    <node name="run_vector_new" pkg="evit_demo" type="run_vector_new" output="screen" args="--logtostderr=1">
+    <node name="run_vector_new" pkg="evit_demo" type="run_vector_new" output="screen">
         <param name="config_path" type="string" value="$(arg config_path)"/>
         <param name="imu_topic" type="string" value="$(arg imu_topic)"/>
         <param name="event_topic" type="string" value="$(arg event_topic)"/>
     </node>
-
+<!--    launch-prefix="gdb -ex run &#45;&#45;args"-->
 </launch>

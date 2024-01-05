@@ -15,10 +15,14 @@
 #include "Frame.h"
 #include "Optimizer.h"
 #include "Type.h"
+#include "Viewer.h"
 
 namespace CannyEVIT {
 
+class Viewer;
+
 class System {
+
   enum State {
     Init,
     Tracking,
@@ -100,7 +104,10 @@ class System {
 
  public:
   Optimizer::Ptr optimizer_;
+  Viewer* viewer_;
+
   std::shared_ptr<std::thread> thread_process_;
+  std::shared_ptr<std::thread> thread_viewer_;
 };
 
 }  // namespace CannyEVIT

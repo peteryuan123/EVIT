@@ -49,7 +49,9 @@ class TimeSurface {
                  const std::string &window_name,
                  PolarType polarType = NEUTRAL,
                  VisualizationType visType = TIME_SURFACE,
-                 bool showGrad = false);
+                 bool showGrad = false,
+                 const std::set<size_t> &indices = std::set<size_t>(),
+                 const Eigen::Matrix4d &T_predict = Eigen::Matrix4d::Zero());
 
   // for compute residual
   bool isValidPatch(Eigen::Vector2d &patchCentreCoord, Eigen::MatrixXi &mask, size_t wx, size_t wy);
@@ -81,7 +83,6 @@ class TimeSurface {
   double time_stamp_;
   double decay_factor_;
 
-
   std::unordered_map<VisualizationType, cv::Mat> neutral_visualization_fields_;
   std::unordered_map<VisualizationType, cv::Mat> positive_visualization_fields_;
   std::unordered_map<VisualizationType, cv::Mat> negative_visualization_fields_;
@@ -90,11 +91,15 @@ class TimeSurface {
   std::unordered_map<FieldType, OptField> positive_fields_;
   std::unordered_map<FieldType, OptField> negative_fields_;
 
-
  public:
-  static std::tuple<TimeSurface::PolarType, double> determinePolarAndWeight(const Point &p_w,
-                                                                            const Eigen::Matrix4d &T_last,
-                                                                            const Eigen::Matrix4d &T_current);
+
+//  static std::tuple<TimeSurface::PolarType, double> determinePolarAndWeight(const Point &p_w,
+//                                                                            const Eigen::Matrix4d &T_last,
+//                                                                            const Eigen::Matrix4d &T_current);
+
+  static std::pair<TimeSurface::PolarType, double> determinePolarAndWeight(const Point &p_w,
+                                                                           const Eigen::Matrix4d &T_last,
+                                                                           const Eigen::Matrix4d &T_current);
   static void initTimeSurface(const EventCamera::Ptr &event_cam);
   static void updateHistoryEvent(EventMsg msg);
   static EventCamera::Ptr event_cam_;

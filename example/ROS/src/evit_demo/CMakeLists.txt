@@ -19,8 +19,11 @@ endif()
 catkin_package(
  LIBRARIES src
  CATKIN_DEPENDS rosbag tf2_ros  pcl_conversions roscpp std_msgs sensor_msgs geometry_msgs prophesee_event_msgs image_transport
- DEPENDS system_lib
+# DEPENDS system_lib
 )
+
+find_package(Pangolin REQUIRED)
+include_directories(${Pangolin_INCLUDE_DIRS})
 
 find_package(catkin REQUIRED COMPONENTS
         rosbag
@@ -50,5 +53,5 @@ include_directories(${PROJECT_SOURCE_DIR}/../../devel/include)
 add_executable(run_vector_new src/run_vector_new.cpp)
 target_link_libraries(run_vector_new
         ${catkin_LIBRARIES}
-        ${OpenCV_LIBRARIES}
+        ${Pangolin_LIBRARIES}
         ${PROJECT_SOURCE_DIR}/../../../../lib/libEVIT.so)

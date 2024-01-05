@@ -21,6 +21,9 @@ class Frame {
  public:
   Frame(TimeSurface::Ptr time_surface_observation, IntegrationBase::Ptr integration, EventCamera::Ptr event_camera_);
 
+  void stateToOpt();
+  void optToState();
+
  public:
   double time_stamp_;
 
@@ -35,6 +38,8 @@ class Frame {
   Eigen::Vector3d velocity_;
   Eigen::Vector3d acc_bias_, gyr_bias_;
 
+  Eigen::Vector<double, 7> opt_pose_;
+  Eigen::Vector<double, 9> opt_speed_bias_;
  public:
   // getter
   Eigen::Matrix3d Rwb();
@@ -52,7 +57,6 @@ class Frame {
   Eigen::Vector3d Bg();
 
   // setter
-
   void set_integration(const IntegrationBase::Ptr& integration);
   void set_timeStamp(double time_stamp);
   void set_Twb(const Eigen::Matrix4d& Twb);

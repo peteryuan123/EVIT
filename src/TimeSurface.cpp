@@ -123,7 +123,9 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
                             const std::string &window_name,
                             PolarType polarType,
                             VisualizationType visType,
-                            bool showGrad) {
+                            bool showGrad,
+                            const std::set<size_t> &indices,
+                            const Eigen::Matrix4d &T_predict) {
   std::unordered_map<VisualizationType, cv::Mat> *visualization_field_ptr;
   switch (polarType) {
     case NEUTRAL:visualization_field_ptr = &neutral_visualization_fields_;
@@ -141,23 +143,60 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
 
   Eigen::Matrix3d Rwc = Twc.block<3, 3>(0, 0);
   Eigen::Vector3d twc = Twc.block<3, 1>(0, 3);
-  for (size_t i = 0; i < cloud->size(); i++) {
-    Point pt = cloud->at(i);
-    Eigen::Vector3d p(pt.x, pt.y, pt.z);
-    Eigen::Vector3d pc = Rwc.transpose() * (p - twc);
-    Eigen::Vector2d p_2d = event_cam_->World2Cam(pc);
-    cv::Point cvpt(p_2d.x(), p_2d.y());
 
-    if (showGrad) {
-      Eigen::Vector3d p_gradient(pt.x_gradient_, pt.y_gradient_, pt.z_gradient_);
-      Eigen::Vector3d p_gradient_in_cam = Rwc.transpose() * (p_gradient - twc);
-      Eigen::Vector2d gradient_direction = event_cam_->projectDirection(pc, p_gradient_in_cam);
-      cv::Point cv_normal2d_end(p_2d.x() + 10 * gradient_direction.x(), p_2d.y() + 10 * gradient_direction.y());
-      cv::line(img_drawing, cvpt, cv_normal2d_end, CV_RGB(0, 255, 0));
+  if (indices.empty()) {
+    for (size_t i = 0; i < cloud->size(); i++) {
+      const Point &pt = cloud->at(i);
+      Eigen::Vector3d p(pt.x, pt.y, pt.z);
+      Eigen::Vector3d pc = Rwc.transpose() * (p - twc);
+      Eigen::Vector2d p_2d = event_cam_->World2Cam(pc);
+      cv::Point cvpt(p_2d.x(), p_2d.y());
+
+      if (showGrad) {
+        Eigen::Vector3d p_gradient(pt.x_gradient_, pt.y_gradient_, pt.z_gradient_);
+        Eigen::Vector3d p_gradient_in_cam = Rwc.transpose() * (p_gradient - twc);
+        Eigen::Vector2d gradient_direction = event_cam_->projectDirection(pc, p_gradient_in_cam);
+        gradient_direction.normalize();
+        cv::Point cv_normal2d_end(p_2d.x() + 10 * gradient_direction.x(), p_2d.y() + 10 * gradient_direction.y());
+        cv::line(img_drawing, cvpt, cv_normal2d_end, CV_RGB(0, 255, 0));
+      }
+
+      if(T_predict.norm() > 0.001){
+        Eigen::Vector3d p_predict = T_predict.block<3, 3>(0, 0).transpose() * (p - T_predict.block<3, 1>(0, 3));
+        Eigen::Vector2d flow = event_cam_->projectDirection(pc, p_predict);
+        cv::Point cv_normal2d_end(p_2d.x() + flow.x(), p_2d.y() + flow.y());
+        cv::line(img_drawing, cvpt, cv_normal2d_end, CV_RGB(0, 0, 255));
+      }
+
+      cv::circle(img_drawing, cvpt, 0, CV_RGB(255, 0, 0), cv::FILLED);
     }
+  } else {
+    for (auto index: indices) {
+      const Point &pt = cloud->at(index);
+      Eigen::Vector3d p(pt.x, pt.y, pt.z);
+      Eigen::Vector3d pc = Rwc.transpose() * (p - twc);
+      Eigen::Vector2d p_2d = event_cam_->World2Cam(pc);
+      cv::Point cvpt(p_2d.x(), p_2d.y());
 
-    cv::circle(img_drawing, cvpt, 0, CV_RGB(255, 0, 0), cv::FILLED);
+      if (showGrad) {
+        Eigen::Vector3d p_gradient(pt.x_gradient_, pt.y_gradient_, pt.z_gradient_);
+        Eigen::Vector3d p_gradient_in_cam = Rwc.transpose() * (p_gradient - twc);
+        Eigen::Vector2d gradient_direction = event_cam_->projectDirection(pc, p_gradient_in_cam);
+        gradient_direction.normalize();
+        cv::Point cv_normal2d_end(p_2d.x() + 10 * gradient_direction.x(), p_2d.y() + 10 * gradient_direction.y());
+        cv::line(img_drawing, cvpt, cv_normal2d_end, CV_RGB(0, 255, 0));
+      }
+
+      if(T_predict.norm() > 0.001){
+        Eigen::Vector3d p_predict = T_predict.block<3, 3>(0, 0).transpose() * (p - T_predict.block<3, 1>(0, 3));
+        Eigen::Vector2d flow = event_cam_->projectDirection(pc, p_predict);
+        cv::Point cv_normal2d_end(p_2d.x() + flow.x(), p_2d.y() + flow.y());
+        cv::line(img_drawing, cvpt, cv_normal2d_end, CV_RGB(0, 0, 255));
+      }
+      cv::circle(img_drawing, cvpt, 0, CV_RGB(255, 0, 0), cv::FILLED);
+    }
   }
+
   cv::imshow(window_name, img_drawing);
 }
 
@@ -313,7 +352,7 @@ Eigen::MatrixXd TimeSurface::df(const CannyEVIT::Point &p_w,
     grad.row(0) = gx.reshaped(1, wx * wy);
     grad.row(1) = gy.reshaped(1, wx * wy);
 
-    if(fieldType == INV_TIME_SURFACE) //TODO: MAKE ALL CONSISTENT
+    if (fieldType == INV_TIME_SURFACE) //TODO: MAKE ALL CONSISTENT
       grad = grad / 8.0;
 
     Eigen::Matrix<double, 2, 3> duv_dPc;
@@ -361,7 +400,7 @@ void TimeSurface::updateHistoryEvent(EventMsg msg) {
   history_event_.at<double>(msg.y_, msg.x_) = msg.time_stamp_;
 }
 
-std::tuple<TimeSurface::PolarType, double> TimeSurface::determinePolarAndWeight(const CannyEVIT::Point &p_w,
+std::pair<TimeSurface::PolarType, double> TimeSurface::determinePolarAndWeight(const CannyEVIT::Point &p_w,
                                                                                 const Eigen::Matrix4d &T_current,
                                                                                 const Eigen::Matrix4d &T_predict) {
   Eigen::Vector3d p_world(p_w.x, p_w.y, p_w.z);
@@ -373,17 +412,23 @@ std::tuple<TimeSurface::PolarType, double> TimeSurface::determinePolarAndWeight(
   Eigen::Vector3d p_cam_predict = T_predict.block<3, 3>(0, 0) * p_world + T_predict.block<3, 1>(0, 3);
   Eigen::Vector3d p_gradient_cam_current = T_current.block<3, 3>(0, 0) * p_gradient_world + T_current.block<3, 1>(0, 3);
 
-  Eigen::Vector2d flow = event_cam_->projectDirection(p_cam_predict, p_cam_current);
-  Eigen::Vector2d gradient = event_cam_->projectDirection(p_gradient_cam_current, p_cam_current);
+  Eigen::Vector2d flow = event_cam_->projectDirection(p_cam_current, p_cam_predict);
+  Eigen::Vector2d gradient = event_cam_->projectDirection(p_cam_current, p_gradient_cam_current);
+
+  if (flow.norm() < 3)
+    return std::make_pair(TimeSurface::PolarType::NEUTRAL, 1.0);
+
+  flow.normalize();
+  gradient.normalize();
 
   // gradient is the pixel value increasing direction
   // if the flow is at the opposite direction of gradient, the positive event is triggered
   double cosTheta = flow.dot(gradient);
   double weight = std::abs(cosTheta);
   if (cosTheta < -0.866)
-    return std::make_tuple(TimeSurface::PolarType::POSITIVE, weight);
+    return std::make_pair(TimeSurface::PolarType::POSITIVE, weight);
   else if (cosTheta > 0.866)
-    return std::make_tuple(TimeSurface::PolarType::NEGATIVE, weight);
+    return std::make_pair(TimeSurface::PolarType::NEGATIVE, weight);
   else
-    return std::make_tuple(TimeSurface::PolarType::NEUTRAL, weight);
+    return std::make_pair(TimeSurface::PolarType::NEUTRAL, weight);
 }

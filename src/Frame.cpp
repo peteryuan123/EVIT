@@ -16,7 +16,25 @@ Frame::Frame(TimeSurface::Ptr time_surface_observation, IntegrationBase::Ptr int
       Twb_(Eigen::Matrix4d::Identity()),
       velocity_(Eigen::Vector3d::Zero()),
       acc_bias_(Eigen::Vector3d::Zero()),
-      gyr_bias_(Eigen::Vector3d::Zero()) {}
+      gyr_bias_(Eigen::Vector3d::Zero()),
+      opt_pose_(Eigen::Vector<double, 7>::Zero()),
+      opt_speed_bias_(Eigen::Vector<double, 9>::Zero()) {}
+
+void Frame::optToState() {
+  set_twb(opt_pose_.segment<3>(0));
+  set_Rwb(Eigen::Quaterniond(opt_pose_[6], opt_pose_[3], opt_pose_[4], opt_pose_[5]));
+  set_velocity(opt_speed_bias_.segment<3>(0));
+  set_Ba(opt_speed_bias_.segment<3>(3));
+  set_Bg(opt_speed_bias_.segment<3>(6));
+}
+
+void Frame::stateToOpt() {
+  opt_pose_.segment<3>(0) = twb_;
+  opt_pose_[3] = Qwb_.x(); opt_pose_[4] = Qwb_.y(); opt_pose_[5] = Qwb_.z(); opt_pose_[6] = Qwb_.w();
+  opt_speed_bias_.segment<3>(0) = velocity_;
+  opt_speed_bias_.segment<3>(3) = acc_bias_;
+  opt_speed_bias_.segment<3>(6) = gyr_bias_;
+}
 
 // getter
 Eigen::Matrix3d Frame::Rwb() { return Qwb_.toRotationMatrix(); }

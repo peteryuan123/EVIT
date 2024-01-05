@@ -53,6 +53,7 @@ set(SRC_FILE
         src/imageProcessing/image_processing.cpp
         src/EigenOptimization/Factor/ResidualImuItem.cpp
         src/EigenOptimization/Problem/SlidingWindowProblem.cpp
+        src/Viewer.cpp
 )
 
 
@@ -82,18 +83,19 @@ set(INCLUDE_FILE
         include/imageProcessing/sobel.h
         include/imageProcessing/image_processing.h
         include/EigenOptimization/Problem/SlidingWindowProblem.h
+        include/Viewer.h
 )
 
 # library
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 add_library(EVIT SHARED ${SRC_FILE} ${INCLUDE_FILE})
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 target_link_libraries(EVIT
         ${OpenCV_LIBRARIES}
         ${PCL_LIBRARIES}
         ${Pangolin_LIBRARIES}
         ${CERES_LIBRARIES}
         )
-link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 
 # test
