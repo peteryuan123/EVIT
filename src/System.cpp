@@ -300,10 +300,10 @@ void System::process() {
           cv::waitKey(10);
         }
 
-        optimizer_->OptimizeVelovityBias(initial_list);
+//        optimizer_->OptimizeVelovityBias(initial_list);
         // optimizer_->initVelocityBias(initial_list);
         for (auto iter = initial_list.rbegin(); iter != initial_list.rend(); iter++) {
-          (*iter)->optToState();
+//          (*iter)->optToState();
           (*iter)->integration_->repropagate((*iter)->Ba(), (*iter)->Bg());
           sliding_window_.push_front(*iter);
           if (sliding_window_.size() == window_size_) break;
@@ -368,7 +368,7 @@ void System::process() {
 //        optimizer_->OptimizeSlidingWindowProblemEigen(cloud_, sliding_window_);
 
         for (size_t i = 0; i < sliding_window_.size(); i++) {
-//          sliding_window_[i]->optToState();
+          sliding_window_[i]->optToState();
           sliding_window_[i]->integration_->repropagate(sliding_window_[i]->Ba(), sliding_window_[i]->Bg());
         }
 

@@ -126,7 +126,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeres(pCloud cloud, std::deque<Frame
       problem.AddResidualBlock(
           new EventFactor(cloud->at(index), window[i]->time_surface_observation_, patch_size_X_, patch_size_Y_),
           loss_function,
-          window[i]->opt_pose_[i].data());
+          window[i]->opt_pose_.data());
     }
   }
 
@@ -240,6 +240,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(pCloud cloud, std::deque<
                                                       true,
                                                       negative_indices,
                                                       window[i]->last_frame_->Twc());
+      cv::waitKey(0);
     }
 
   }
