@@ -5,7 +5,6 @@
 #include "imageProcessing/canny.h"
 #include "imageProcessing/sobel.h"
 #include "imageProcessing/distanceField.h"
-// /home/mpl/data/EVIT/robot/robot_normal_result/1642661139.236530.jpg
 using namespace CannyEVIT;
 
 
@@ -15,7 +14,7 @@ void build_canny(const cv::Mat& img, std::vector<std::pair<int, int>>&edge_pos, 
   cv::cv2eigen(img, img_eigen);
   Eigen::ArrayXXd grad_x, grad_y, grad_mag;
   image_processing::sobel_mag(img_eigen, grad_x, grad_y, grad_mag);
-  image_processing::canny(grad_mag, grad_x, grad_y, edge_pos, 10);
+  image_processing::canny(grad_mag, grad_x, grad_y, edge_pos, 30);
   canny_img = cv::Mat(img.rows, img.cols, CV_8U, cv::Scalar(0));
   for (auto& pos: edge_pos)
     canny_img.at<uint8_t>(pos.first, pos.second) = 255;
@@ -53,12 +52,12 @@ int main() {
 //  std::cout << grad_mag << std::endl;
 
 
-  cv::Mat img_neutral = cv::imread("/home/mpl/data/EVIT/robot/robot_fast_result/neutral/1642661814.296115.jpg", cv::IMREAD_GRAYSCALE);
-  cv::Mat img_positive = cv::imread("/home/mpl/data/EVIT/robot/robot_fast_result/positive/1642661814.296115.jpg", cv::IMREAD_GRAYSCALE);
-  cv::Mat img_negative = cv::imread("/home/mpl/data/EVIT/robot/robot_fast_result/negative/1642661814.296115.jpg", cv::IMREAD_GRAYSCALE);
-  cv::threshold(img_neutral, img_neutral, 50, 255, cv::THRESH_TOZERO);
-  cv::threshold(img_positive, img_positive, 50, 255, cv::THRESH_TOZERO);
-  cv::threshold(img_negative, img_negative, 50, 255, cv::THRESH_TOZERO);
+  cv::Mat img_neutral = cv::imread("/home/mpl/data/EVIT/result/robot_fast_result/neutral/1642661814.401115.jpg", cv::IMREAD_GRAYSCALE);
+  cv::Mat img_positive = cv::imread("/home/mpl/data/EVIT/result/robot_fast_result/positive/1642661814.401115.jpg", cv::IMREAD_GRAYSCALE);
+  cv::Mat img_negative = cv::imread("/home/mpl/data/EVIT/result/robot_fast_result/negative/1642661814.401115.jpg", cv::IMREAD_GRAYSCALE);
+//  cv::threshold(img_neutral, img_neutral, 50, 255, cv::THRESH_TOZERO);
+//  cv::threshold(img_positive, img_positive, 50, 255, cv::THRESH_TOZERO);
+//  cv::threshold(img_negative, img_negative, 50, 255, cv::THRESH_TOZERO);
 
   std::vector<std::pair<int, int>> edge_pos_neutral;
   std::vector<std::pair<int, int>> edge_pos_positive;
@@ -69,14 +68,20 @@ int main() {
   build_canny(img_positive, edge_pos_positive, edge_positive);
   build_canny(img_negative, edge_pos_negative, edge_negative);
 
+
   cv::imshow("img_neutral", img_neutral);
   cv::imshow("img_positive", img_positive);
   cv::imshow("img_negative", img_negative);
 
-
+  cv::Mat canny_img = cv::Mat(img_positive.rows, img_positive.cols, CV_8U, cv::Scalar(0));
+  for (auto& pos: edge_pos_positive)
+    canny_img.at<uint8_t>(pos.first, pos.second) = 255;
+  for (auto& pos: edge_pos_negative)
+    canny_img.at<uint8_t>(pos.first, pos.second) = 255;
   cv::imshow("edge_neutral", edge_neutral);
   cv::imshow("edge_positive", edge_positive);
   cv::imshow("edge_negative", edge_negative);
+  cv::imshow("canny", canny_img);
   cv::waitKey(0);
 //  Eigen::ArrayXXd distance_field;
 //  image_processing::chebychevDistanceField(row, col, hl, distance_field);

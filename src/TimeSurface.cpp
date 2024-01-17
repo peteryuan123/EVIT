@@ -5,6 +5,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
+#include <fstream>
 
 #include "TimeSurface.h"
 #include "imageProcessing/sobel.h"
@@ -61,6 +62,8 @@ void TimeSurface::processTimeSurface(const cv::Mat &history_event,
   cv::exp((history_event - time_stamp) / decay_factor, time_surface);
   event_cam_->undistortImage(time_surface, time_surface);
   time_surface = time_surface * 255.0;
+  cv::threshold(time_surface, time_surface, 100.0, 0, cv::THRESH_TOZERO);
+
 //  cv::Point minIdx, maxIdx;
 //  double minVal, maxVal;
 //  cv::minMaxLoc(time_surface, &minVal, &maxVal, &minIdx, &maxIdx);
@@ -93,6 +96,10 @@ void TimeSurface::processTimeSurface(const cv::Mat &history_event,
   cv::cv2eigen(inverse_gradX_cv, inv_time_surface_field.gradX_);
   cv::cv2eigen(inverse_gradY_cv, inv_time_surface_field.gradY_);
 
+//  std::ofstream dest("/home/mpl/data/EVIT/result/robot_fast_result/exp/" + std::to_string(time_stamp_) + ".txt");
+//  dest << inv_time_surface_field.field_;
+//  dest.close();
+
 }
 
 void TimeSurface::constructDistanceField(const cv::Mat &time_surface,
@@ -104,7 +111,7 @@ void TimeSurface::constructDistanceField(const cv::Mat &time_surface,
   Eigen::ArrayXXd grad_x, grad_y, grad_mag;
   image_processing::sobel_mag(time_surface_eigen, grad_x, grad_y, grad_mag);
   std::vector<std::pair<int, int>> uv_edge;
-  image_processing::canny(grad_mag, grad_x, grad_y, uv_edge, 45);
+  image_processing::canny(grad_mag, grad_x, grad_y, uv_edge, 35);
   Eigen::ArrayXXd distance_field_tmp;
   image_processing::chebychevDistanceField(event_cam_->height(), event_cam_->width(), uv_edge, distance_field_tmp);
   distance_field.field_ = distance_field_tmp;
@@ -161,7 +168,7 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
         cv::line(img_drawing, cvpt, cv_normal2d_end, CV_RGB(0, 255, 0));
       }
 
-      if(T_predict.norm() > 0.001){
+      if (T_predict.norm() > 0.001) {
         Eigen::Vector3d p_predict = T_predict.block<3, 3>(0, 0).transpose() * (p - T_predict.block<3, 1>(0, 3));
         Eigen::Vector2d flow = event_cam_->projectDirection(pc, p_predict);
         cv::Point cv_normal2d_end(p_2d.x() + flow.x(), p_2d.y() + flow.y());
@@ -171,7 +178,7 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
       cv::circle(img_drawing, cvpt, 0, CV_RGB(255, 0, 0), cv::FILLED);
     }
   } else {
-    for (auto index: indices) {
+    for (auto index : indices) {
       const Point &pt = cloud->at(index);
       Eigen::Vector3d p(pt.x, pt.y, pt.z);
       Eigen::Vector3d pc = Rwc.transpose() * (p - twc);
@@ -187,7 +194,7 @@ void TimeSurface::drawCloud(CannyEVIT::pCloud cloud,
         cv::line(img_drawing, cvpt, cv_normal2d_end, CV_RGB(0, 255, 0));
       }
 
-      if(T_predict.norm() > 0.001){
+      if (T_predict.norm() > 0.001) {
         Eigen::Vector3d p_predict = T_predict.block<3, 3>(0, 0).transpose() * (p - T_predict.block<3, 1>(0, 3));
         Eigen::Vector2d flow = event_cam_->projectDirection(pc, p_predict);
         cv::Point cv_normal2d_end(p_2d.x() + flow.x(), p_2d.y() + flow.y());
@@ -401,8 +408,8 @@ void TimeSurface::updateHistoryEvent(EventMsg msg) {
 }
 
 std::pair<TimeSurface::PolarType, double> TimeSurface::determinePolarAndWeight(const CannyEVIT::Point &p_w,
-                                                                                const Eigen::Matrix4d &T_current,
-                                                                                const Eigen::Matrix4d &T_predict) {
+                                                                               const Eigen::Matrix4d &T_current,
+                                                                               const Eigen::Matrix4d &T_predict) {
   Eigen::Vector3d p_world(p_w.x, p_w.y, p_w.z);
   Eigen::Vector3d p_gradient_world(p_w.x_gradient_, p_w.y_gradient_, p_w.z_gradient_);
 
@@ -426,9 +433,9 @@ std::pair<TimeSurface::PolarType, double> TimeSurface::determinePolarAndWeight(c
   double cosTheta = flow.dot(gradient);
   double weight = std::abs(cosTheta);
   if (cosTheta < -0.866)
-    return std::make_pair(TimeSurface::PolarType::POSITIVE, weight);
-  else if (cosTheta > 0.866)
     return std::make_pair(TimeSurface::PolarType::NEGATIVE, weight);
+  else if (cosTheta > 0.866)
+    return std::make_pair(TimeSurface::PolarType::POSITIVE, weight);
   else
     return std::make_pair(TimeSurface::PolarType::NEUTRAL, weight);
 }

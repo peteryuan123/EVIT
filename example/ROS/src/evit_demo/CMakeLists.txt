@@ -47,8 +47,12 @@ include_directories(${PROJECT_SOURCE_DIR}/../../devel/include)
 # target_link_libraries(run_VECtor
 #         ${catkin_LIBRARIES}
 #         ${OpenCV_LIBRARIES}
-#         ${PROJECT_SOURCE_DIR}/../../../../lib/libEVIT.so)
+#         ${PROJECT_SOURCE_DIR}/../../../../lib/libEVIT.so)\
 
+add_executable(write_data src/write_data.cpp)
+target_link_libraries(write_data
+        ${catkin_LIBRARIES}
+)
 
 add_executable(run_vector_new src/run_vector_new.cpp)
 target_link_libraries(run_vector_new

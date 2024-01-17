@@ -97,6 +97,11 @@ target_link_libraries(EVIT
         ${CERES_LIBRARIES}
         )
 
+# demo
+add_executable(run_evit example/demo/run_evit.cpp)
+target_link_libraries(run_evit
+        EVIT
+)
 
 # test
 add_executable(test_system
@@ -105,6 +110,13 @@ add_executable(test_system
 target_link_libraries(test_system
         EVIT
         )
+
+add_executable(test_supression
+        example/test/test_supression.cpp
+)
+target_link_libraries(test_supression
+        EVIT
+)
 
 add_executable(test_normal
         example/test/test_normal.cpp

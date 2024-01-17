@@ -240,7 +240,6 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
                                                       true,
                                                       negative_indices,
                                                       window[i]->last_frame_->Twc());
-      cv::waitKey(0);
     }
 
   }

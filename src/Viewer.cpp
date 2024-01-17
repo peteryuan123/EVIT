@@ -24,6 +24,7 @@ Viewer::Viewer(const std::string &config_path, System *system) : system_(system)
   LOG(INFO) << "frame_size_:" << frame_size_;
 }
 
+
 void Viewer::Run() {
 
   Eigen::MatrixXd points(system_->cloud_->size(), 3);
@@ -46,9 +47,20 @@ void Viewer::Run() {
 
   Eigen::Vector3d init_t = system_->t0_;
 
-  pangolin::CreateWindowAndBind("EVIT Viewer", 1024, 768);
-  glEnable(GL_DEPTH_TEST);
+//  pangolin::CreateWindowAndBind("EVIT 2D Viewer", 1024, 768);
+//  pangolin::CreatePanel("menu").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(174));
+//  glEnable(GL_DEPTH_TEST);
+//  glEnable(GL_BLEND);
+//  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//  pangolin::Var<bool> menuDrawGradient("menu.Draw Gradient", false, true);
+//  pangolin::Var<bool> menuDrawIMU("menu.Draw IMU frame", true, true);
+//  pangolin::Var<bool> menuDrawEvent("menu.Draw Event frame", true, true);
+//
+//  pangolin::Var<bool> menuStepByStep("menu.Step By Step", false, true);  // false, true
+//  pangolin::Var<bool> menuStep("menu.Step", false, false);
 
+  pangolin::CreateWindowAndBind("EVIT 3D Viewer", 1024, 768);
+  glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -67,11 +79,13 @@ void Viewer::Run() {
                                 cloud_center.x(), cloud_center.y(), cloud_center.z(),
                                 0.0, 0.0, 1.0)
   );
-
   // Add named OpenGL viewport to window and provide 3D Handler
   pangolin::View &d_cam = pangolin::CreateDisplay()
       .SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -1024.0f / 768.0f)
       .SetHandler(new pangolin::Handler3D(s_cam));
+
+
+  bool bStepByStep = false;
 
   while (!pangolin::ShouldQuit()) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -113,9 +127,23 @@ void Viewer::Run() {
       glEnd();
     }
 
-    // draw old frames
+
+    // step by step
+    if (menuStepByStep && !bStepByStep) {
+      system_->setStepByStep(true);
+      bStepByStep = true;
+    } else if (!menuStepByStep && bStepByStep) {
+      system_->setStepByStep(false);
+      bStepByStep = false;
+    }
+    if (menuStep) {
+      system_->Step();
+      menuStep = false;
+    }
+
+    // draw all frames
     std::vector<Frame::Ptr> frames = system_->getAllFrames();
-    for (const auto& frame: frames){
+    for (const auto &frame : frames) {
       if (menuDrawIMU)
         drawAxis(frame->Twb());
       if (menuDrawEvent)

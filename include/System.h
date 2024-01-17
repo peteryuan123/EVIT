@@ -22,6 +22,8 @@ namespace CannyEVIT {
 class Viewer;
 
 class System {
+ public:
+  typedef std::shared_ptr<System> Ptr;
 
   enum State {
     Init,
@@ -39,6 +41,9 @@ class System {
 
   void GrabEventMsg(double time_stamp, size_t x, size_t y, bool polarity);
   void GrabImuMsg(double time_stamp, double accX, double accY, double accZ, double gyrX, double gyrY, double gyrZ);
+
+  void setStepByStep(bool val);
+  void Step();
 
   bool getMeasurement(FrameData &data);
   void process();
@@ -77,7 +82,8 @@ class System {
 
   // for state
   bool is_system_start_;
-  bool is_first_frame_;
+  bool is_step_by_step_;
+  bool step_;
   State state_;
 
   // frame

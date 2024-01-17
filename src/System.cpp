@@ -17,7 +17,8 @@ System::System(const std::string &config_path)
     : cloud_(new std::vector<Point>()),
       event_cam_(nullptr),
       is_system_start_(true),
-      is_first_frame_(true),
+      is_step_by_step_(false),
+      step_(false),
       state_(State::Init),
       imu_t0_(0.0),
       acc0_(Eigen::Vector3d::Zero()),
@@ -185,6 +186,7 @@ bool System::getMeasurement(FrameData &data) {
     case Init: {
       size_t imu_num_for_init = imu_num_for_init_frame_ * frame_num_for_init_;
       if (event_deque_.empty() || imu_deque_.size() < imu_num_for_init) return false;
+      std::cout << event_deque_.back().time_stamp_ << " " << imu_deque_[imu_num_for_init - 1].time_stamp_ << std::endl;
       if (event_deque_.back().time_stamp_ < imu_deque_[imu_num_for_init - 1].time_stamp_) return false;
 
       for (size_t i = 0; i < imu_num_for_init; i++) {
@@ -271,7 +273,7 @@ void System::process() {
         last_frame->time_surface_observation_->drawCloud(cloud_, last_frame->Twc(), "init_frame");
         last_frame->last_frame_ = first_frame;
         initial_list.push_back(last_frame);
-        cv::waitKey(0);
+//        cv::waitKey(0);
 
         // localize on each frame
         for (size_t i = 0; i < frame_num_for_init_; i++) {
@@ -402,7 +404,7 @@ void System::process() {
             viz_type_);
         cv::waitKey(10);
 
-//        if (sliding_window_.size() > window_size_) {
+//        if (sliding_window_.size() >= window_size_) {
 //          cv::imwrite(result_path_ + "/neutral/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
 //                      sliding_window_.front()->time_surface_observation_->neutral_visualization_fields_[viz_type_]);
 //          cv::imwrite(result_path_ + "/positive/" + std::to_string(sliding_window_.front()->time_stamp_) + ".jpg",
@@ -413,7 +415,24 @@ void System::process() {
         break;
       }
     }
+
+    if (is_step_by_step_)
+    {
+      std::cout << "Tracking: Waiting to the next step" << std::endl;
+      while(!step_ && is_step_by_step_)
+        usleep(500);
+      step_ = false;
+    }
+
   }
+}
+
+void System::setStepByStep(bool val) {
+  is_step_by_step_ = val;
+}
+
+void System::Step() {
+  step_ = true;
 }
 
 std::vector<Frame::Ptr> System::getAllFrames() {
