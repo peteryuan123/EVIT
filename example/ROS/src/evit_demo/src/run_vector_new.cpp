@@ -63,8 +63,8 @@ int main( int argc, char **argv)
 
   mSystem.reset(new CannyEVIT::System(config_path));
 
-  ros::Subscriber imu_subscriber = nh.subscribe(imu_topic, 10000, &ImuCallBack, ros::TransportHints().tcpNoDelay());
-  ros::Subscriber event_subscriber = nh.subscribe(event_topic, 10000, &EventCallBack, ros::TransportHints().tcpNoDelay());
+  ros::Subscriber imu_subscriber = nh.subscribe(imu_topic, 200000, &ImuCallBack, ros::TransportHints().tcpNoDelay());
+  ros::Subscriber event_subscriber = nh.subscribe(event_topic, 200000, &EventCallBack, ros::TransportHints().tcpNoDelay());
   ros::spin();
 }
 

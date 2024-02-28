@@ -20,8 +20,8 @@ cv::Mat TimeSurface::history_event_ = cv::Mat();
 cv::Mat TimeSurface::history_positive_event_ = cv::Mat();
 cv::Mat TimeSurface::history_negative_event_ = cv::Mat();
 
-TimeSurface::TimeSurface(double time_stamp, double decay_factor)
-    : time_stamp_(time_stamp), decay_factor_(decay_factor) {
+TimeSurface::TimeSurface(double time_stamp, double decay_factor, double truncate_threshold)
+    : time_stamp_(time_stamp), decay_factor_(decay_factor), truncate_threshold_(truncate_threshold) {
   processTimeSurface(history_event_,
                      time_stamp,
                      decay_factor_,
@@ -52,6 +52,7 @@ TimeSurface::TimeSurface(double time_stamp, double decay_factor)
                          negative_fields_[FieldType::DISTANCE_FIELD],
                          negative_visualization_fields_[VisualizationType::CANNY]);
 
+
 }
 
 void TimeSurface::processTimeSurface(const cv::Mat &history_event,
@@ -59,10 +60,11 @@ void TimeSurface::processTimeSurface(const cv::Mat &history_event,
                                      double decay_factor,
                                      cv::Mat &time_surface,
                                      CannyEVIT::OptField &inv_time_surface_field) {
+//  std::cout << history_event << std::endl;
   cv::exp((history_event - time_stamp) / decay_factor, time_surface);
   event_cam_->undistortImage(time_surface, time_surface);
   time_surface = time_surface * 255.0;
-  cv::threshold(time_surface, time_surface, 100.0, 0, cv::THRESH_TOZERO);
+  cv::threshold(time_surface, time_surface, truncate_threshold_, 0, cv::THRESH_TOZERO);
 
 //  cv::Point minIdx, maxIdx;
 //  double minVal, maxVal;
@@ -393,7 +395,7 @@ void TimeSurface::initTimeSurface(const EventCamera::Ptr &event_cam) {
   history_negative_event_ = cv::Mat(event_cam->height(), event_cam->width(), CV_64F, 0.0);
 }
 
-void TimeSurface::updateHistoryEvent(EventMsg msg) {
+void TimeSurface::updateHistoryEvent(const EventMsg &msg) {
   if (msg.time_stamp_ < history_positive_event_.at<double>(msg.y_, msg.x_)) {
     LOG(WARNING) << "Time surface time misaligned";
     return;

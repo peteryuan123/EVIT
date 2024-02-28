@@ -30,6 +30,8 @@ class Optimizer {
   bool OptimizeVelovityBias(const std::vector<Frame::Ptr> &window);
   bool initVelocityBias(const std::vector<Frame::Ptr> &window);
 
+  void sampleVisibleIndices(pCloud cloud, const std::deque<Frame::Ptr> &window, std::vector<size_t> &set_samples);
+
  public:
   EventCamera::Ptr event_camera_;
 

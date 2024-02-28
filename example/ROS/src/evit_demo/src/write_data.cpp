@@ -48,7 +48,6 @@ void ImuCallBack(const sensor_msgs::ImuConstPtr& imu_msg)
   double accZ = imu_msg->linear_acceleration.z;
   imu_dest << timestamp << " " << accX << " " << accY << " " << accZ << " " << gyrX << " " << gyrY << " " << gyrZ << std::endl;
   std::cout << "imu done" << std::endl;
-
 }
 
 
@@ -65,8 +64,8 @@ int main( int argc, char **argv)
   event_dest << "480 640\n";
   imu_dest.open("/home/mpl/data/EVIT/offline/imu.txt");
   imu_dest << std::fixed;
-  ros::Subscriber imu_subscriber = nh.subscribe(imu_topic, 10000, &ImuCallBack, ros::TransportHints().tcpNoDelay());
-  ros::Subscriber event_subscriber = nh.subscribe(event_topic, 10000, &EventCallBack, ros::TransportHints().tcpNoDelay());
+  ros::Subscriber imu_subscriber = nh.subscribe(imu_topic, 300000, &ImuCallBack, ros::TransportHints().tcpNoDelay());
+  ros::Subscriber event_subscriber = nh.subscribe(event_topic, 300000, &EventCallBack, ros::TransportHints().tcpNoDelay());
   ros::spin();
 }
 

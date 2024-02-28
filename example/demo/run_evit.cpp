@@ -9,6 +9,9 @@ void readEventFile(CannyEVIT::System* system, std::string event_path){
   std::ifstream src;
   src.open(event_path);
 
+//  int dummy;
+//  src >> dummy >> dummy;
+
   double time_stamp;
   int x, y;
   bool polar;
@@ -46,4 +49,6 @@ int main(int argc, char** argv){
 
   event_read_thread.join();
   imu_read_thread.join();
+
+  while(1);
 }

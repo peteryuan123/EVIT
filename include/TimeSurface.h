@@ -32,7 +32,7 @@ class TimeSurface {
   enum FieldType { INV_TIME_SURFACE, DISTANCE_FIELD };
   enum VisualizationType { TIME_SURFACE, CANNY };
 
-  TimeSurface(double time_stamp, double decay_fator);
+  TimeSurface(double time_stamp, double decay_fator, double truncate_threshold);
 
   void processTimeSurface(const cv::Mat &history_event,
                           double time_stamp,
@@ -82,6 +82,7 @@ class TimeSurface {
  public:
   double time_stamp_;
   double decay_factor_;
+  double truncate_threshold_;
 
   std::unordered_map<VisualizationType, cv::Mat> neutral_visualization_fields_;
   std::unordered_map<VisualizationType, cv::Mat> positive_visualization_fields_;
@@ -101,7 +102,7 @@ class TimeSurface {
                                                                            const Eigen::Matrix4d &T_last,
                                                                            const Eigen::Matrix4d &T_current);
   static void initTimeSurface(const EventCamera::Ptr &event_cam);
-  static void updateHistoryEvent(EventMsg msg);
+  static void updateHistoryEvent(const EventMsg &msg);
   static EventCamera::Ptr event_cam_;
   static cv::Mat history_event_;
   static cv::Mat history_positive_event_;

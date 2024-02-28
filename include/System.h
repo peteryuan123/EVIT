@@ -46,6 +46,9 @@ class System {
   void Step();
 
   bool getMeasurement(FrameData &data);
+  void Track(FrameData& frame_data);
+  void Track(Frame::Ptr frame);
+
   void process();
 
   void predictIMUPose(double dt,
@@ -67,6 +70,7 @@ class System {
                                      Frame::Ptr last_frame,
                                      double time_interval);
 
+
   std::vector<Frame::Ptr> getAllFrames();
 
  public:
@@ -82,6 +86,7 @@ class System {
 
   // for state
   bool is_system_start_;
+  bool is_first_frame_;
   bool is_step_by_step_;
   bool step_;
   State state_;
@@ -92,20 +97,28 @@ class System {
   Eigen::Vector3d gyr0_;
 
   std::deque<Frame::Ptr> sliding_window_;
+  std::vector<Frame::Ptr> initial_vector_;
   std::vector<Frame::Ptr> history_frames_;
 
  public:
   // config param
   std::string cloud_path_;
   std::string result_path_;
+  std::ofstream result_dest_;
   double start_time_;
   double timeSurface_decay_factor_;
+  double timeSurface_truncate_threshold_;
   size_t imu_num_for_frame_;
   size_t window_size_;
   TimeSurface::VisualizationType viz_type_;
   size_t imu_num_for_init_frame_;
   size_t frame_num_for_init_;
   int init_freq_;
+  size_t min_num_events_for_frame_;
+  size_t min_num_imu_for_frame_;
+
+
+  Frame::Ptr last_frame_;
 
   Eigen::Matrix3d R0_;
   Eigen::Vector3d t0_;

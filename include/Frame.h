@@ -19,7 +19,10 @@ class Frame {
   typedef std::shared_ptr<Frame const> ConstPtr;
 
  public:
-  Frame(TimeSurface::Ptr time_surface_observation, IntegrationBase::Ptr integration, EventCamera::Ptr event_camera_);
+  Frame(double time_stamp,
+        TimeSurface::Ptr time_surface_observation,
+        IntegrationBase::Ptr integration,
+        EventCamera::Ptr event_camera_);
 
   void stateToOpt();
   void optToState();
@@ -59,17 +62,17 @@ class Frame {
   bool isActive();
 
   // setter
-  void set_integration(const IntegrationBase::Ptr& integration);
+  void set_integration(const IntegrationBase::Ptr &integration);
   void set_timeStamp(double time_stamp);
-  void set_Twb(const Eigen::Matrix4d& Twb);
-  void set_Twb(const Eigen::Matrix3d& Rwb, const Eigen::Vector3d& twb);
-  void set_Twb(const Eigen::Quaterniond& Qwb, const Eigen::Vector3d& twb);
-  void set_Rwb(const Eigen::Quaterniond& Qwb);
-  void set_Rwb(const Eigen::Matrix3d& Rwb);
-  void set_twb(const Eigen::Vector3d& twb);
-  void set_velocity(const Eigen::Vector3d& velocity);
-  void set_Ba(const Eigen::Vector3d& ba);
-  void set_Bg(const Eigen::Vector3d& bg);
+  void set_Twb(const Eigen::Matrix4d &Twb);
+  void set_Twb(const Eigen::Matrix3d &Rwb, const Eigen::Vector3d &twb);
+  void set_Twb(const Eigen::Quaterniond &Qwb, const Eigen::Vector3d &twb);
+  void set_Rwb(const Eigen::Quaterniond &Qwb);
+  void set_Rwb(const Eigen::Matrix3d &Rwb);
+  void set_twb(const Eigen::Vector3d &twb);
+  void set_velocity(const Eigen::Vector3d &velocity);
+  void set_Ba(const Eigen::Vector3d &ba);
+  void set_Bg(const Eigen::Vector3d &bg);
   void set_active(bool active);
 };
 

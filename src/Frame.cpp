@@ -3,15 +3,20 @@
 //
 #include "Frame.h"
 
+#include <utility>
+
 using namespace CannyEVIT;
 
-Frame::Frame(TimeSurface::Ptr time_surface_observation, IntegrationBase::Ptr integration, EventCamera::Ptr event_camera)
-    : time_stamp_(time_surface_observation->time_stamp_),
+Frame::Frame(double time_stamp,
+             TimeSurface::Ptr time_surface_observation,
+             IntegrationBase::Ptr integration,
+             EventCamera::Ptr event_camera)
+    : time_stamp_(time_stamp),
       is_active_(true),
-      time_surface_observation_(time_surface_observation),
+      time_surface_observation_(std::move(time_surface_observation)),
       last_frame_(nullptr),
-      integration_(integration),
-      event_camera_(event_camera),
+      integration_(std::move(integration)),
+      event_camera_(std::move(event_camera)),
       Qwb_(Eigen::Quaterniond::Identity()),
       twb_(Eigen::Vector3d::Zero()),
       Twb_(Eigen::Matrix4d::Identity()),
@@ -27,12 +32,6 @@ void Frame::optToState() {
   set_velocity(opt_speed_bias_.segment<3>(0));
   set_Ba(opt_speed_bias_.segment<3>(3));
   set_Bg(opt_speed_bias_.segment<3>(6));
-//  std::cout << twb_.transpose() << std::endl;
-//  std::cout << Qwb_.coeffs().transpose() << std::endl;
-//  std::cout << velocity_.transpose() << std::endl;
-//  std::cout << acc_bias_.transpose() << std::endl;
-//  std::cout << gyr_bias_.transpose() << std::endl;
-//  std::cout << "--------------" << std::endl;
 }
 
 void Frame::stateToOpt() {
@@ -64,12 +63,12 @@ Eigen::Vector3d Frame::Ba() { return acc_bias_; }
 
 Eigen::Vector3d Frame::Bg() { return gyr_bias_; }
 
-bool Frame::isActive(){
+bool Frame::isActive() {
   return is_active_;
 }
 // setter
 
-void Frame::set_active(bool active){
+void Frame::set_active(bool active) {
   is_active_ = active;
 }
 

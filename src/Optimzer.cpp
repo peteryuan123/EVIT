@@ -65,6 +65,33 @@ Optimizer::Optimizer(const std::string &config_path, EventCamera::Ptr event_came
   LOG(INFO) << "max_registration_point_:" << max_registration_point_;
 }
 
+void Optimizer::sampleVisibleIndices(pCloud cloud,
+                                     const std::deque<Frame::Ptr> &window,
+                                     std::vector<size_t> &set_samples) {
+
+  std::vector<size_t> visible_indices;
+  for (size_t i = 0; i < cloud->size(); i++) {
+    Eigen::Vector3d point(cloud->at(i).x, cloud->at(i).y, cloud->at(i).z);
+    size_t counter = 0;
+    for (auto &frame : window) {
+      Eigen::Vector3d point_cam = frame->Qwc().toRotationMatrix().transpose() * (point - frame->twc());
+      Eigen::Vector2d uv = frame->event_camera_->World2Cam(point_cam);
+      if (uv(0) < -5 || uv(0) > frame->event_camera_->width() + 5 || uv(1) < -5
+          || uv(1) > frame->event_camera_->height() + 5)
+        continue;
+      counter++;
+    }
+    if (counter > window.size() / 2)
+      visible_indices.emplace_back(i);
+  }
+  std::sample(visible_indices.begin(),
+              visible_indices.end(),
+              std::back_inserter(set_samples),
+              max_registration_point_,
+              std::mt19937{std::random_device{}()});
+
+}
+
 bool Optimizer::OptimizeEventProblemCeres(pCloud cloud, Frame::Ptr frame) {
   frame->stateToOpt();
 
@@ -116,10 +143,17 @@ bool Optimizer::OptimizeSlidingWindowProblemCeres(pCloud cloud, std::deque<Frame
     problem.AddParameterBlock(window[i]->opt_pose_.data(), 7, local_para);
     problem.AddParameterBlock(window[i]->opt_speed_bias_.data(), 9);
   }
+  problem.SetParameterBlockConstant(window[0]->opt_pose_.data());
 
-  size_t point_num = std::min(max_registration_point_, cloud->size());
-  std::set<size_t> sample_indices;
-  Utility::uniformSample<size_t>(0, cloud->size() - 1, point_num, sample_indices);
+//  size_t point_num = std::min(max_registration_point_, cloud->size());
+//  std::set<size_t> sample_indices;
+//  Utility::uniformSample<size_t>(0, cloud->size() - 1, point_num, sample_indices);
+
+  std::vector<size_t> sample_vector;
+  sampleVisibleIndices(cloud, window, sample_vector);
+  std::set<size_t> sample_indices(sample_vector.begin(), sample_vector.end());
+  size_t point_num = sample_indices.size();
+  std::cout << "sampled points:" << point_num << std::endl;
 
   for (size_t i = 0; i < window_size; i++) {
     for (size_t index : sample_indices) {
@@ -146,6 +180,14 @@ bool Optimizer::OptimizeSlidingWindowProblemCeres(pCloud cloud, std::deque<Frame
   ceres::Solve(options, &problem, &summary);
   LOG(INFO) << summary.BriefReport();
 
+  window.back()->time_surface_observation_->drawCloud(
+      cloud,
+      window.back()->Twc(),
+      "sampled_projection_after_optimization",
+      TimeSurface::PolarType::NEUTRAL,
+      TimeSurface::TIME_SURFACE,
+      false,
+      sample_indices);
   return true;
 }
 
@@ -174,6 +216,7 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
       problem_list[i].AddParameterBlock(window[j]->opt_pose_.data(), 7, local_para);
       problem_list[i].AddParameterBlock(window[j]->opt_speed_bias_.data(), 9);
     }
+    problem_list[i].SetParameterBlockConstant(window[0]->opt_pose_.data());
   }
 
   // construct imu factors
@@ -183,8 +226,14 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
   // construct event factors
   std::vector<EventFactor *> event_factors;
   // sample N indices
-  std::set<size_t> sample_indices;
-  Utility::uniformSample<size_t>(0, cloud->size() - 1, optimized_points_num, sample_indices);
+//  std::set<size_t> sample_indices;
+//  Utility::uniformSample<size_t>(0, cloud->size() - 1, optimized_points_num, sample_indices);
+
+  std::vector<size_t> sample_vector;
+  sampleVisibleIndices(cloud, window, sample_vector);
+  std::set<size_t> sample_indices(sample_vector.begin(), sample_vector.end());
+  size_t point_num = sample_indices.size();
+  std::cout << "sampled points:" << point_num << std::endl;
 
   for (size_t i = 0; i < window_size; i++) {
     std::set<size_t> positive_indices, negative_indices, neutral_indices;
@@ -282,9 +331,9 @@ bool Optimizer::OptimizeSlidingWindowProblemCeresBatch(CannyEVIT::pCloud cloud, 
     ceres::Solve(options, &problem_list[cur_problem_index], &summary);
     cur_state = summary.termination_type;
     cur_iteration++;
-    std::cout << summary.BriefReport() << std::endl;
+//    std::cout << summary.BriefReport() << std::endl;
   }
-  std::cout << cur_iteration << std::endl;
+//  std::cout << cur_iteration << std::endl;
 
 
   // delete

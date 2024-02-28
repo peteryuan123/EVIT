@@ -103,6 +103,11 @@ target_link_libraries(run_evit
         EVIT
 )
 
+add_executable(run_evit2 example/demo/run_evit2.cpp)
+target_link_libraries(run_evit2
+        EVIT
+)
+
 # test
 add_executable(test_system
         example/test/test_system_read_param.cpp

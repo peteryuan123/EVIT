@@ -5,19 +5,53 @@
 #include "imageProcessing/canny.h"
 #include "imageProcessing/sobel.h"
 #include "imageProcessing/distanceField.h"
+#include <fstream>
 using namespace CannyEVIT;
 
-
-void build_canny(const cv::Mat& img, std::vector<std::pair<int, int>>&edge_pos, cv::Mat& canny_img)
-{
+int counter = 0;
+void build_canny(const cv::Mat &img, std::vector<std::pair<int, int>> &edge_pos, cv::Mat &canny_img) {
+  std::ofstream dest;
+  dest.open("/home/mpl/data/EVIT/result/robot_fast_result/neutral/info.txt");
   Eigen::MatrixXd img_eigen;
   cv::cv2eigen(img, img_eigen);
   Eigen::ArrayXXd grad_x, grad_y, grad_mag;
   image_processing::sobel_mag(img_eigen, grad_x, grad_y, grad_mag);
   image_processing::canny(grad_mag, grad_x, grad_y, edge_pos, 30);
   canny_img = cv::Mat(img.rows, img.cols, CV_8U, cv::Scalar(0));
-  for (auto& pos: edge_pos)
+  for (auto &pos : edge_pos)
     canny_img.at<uint8_t>(pos.first, pos.second) = 255;
+
+  int max_step = 10;
+  int step_size = 1;
+
+  cv::Mat filtered_canny_img = cv::Mat(img.rows, img.cols, CV_8UC3, cv::Scalar(0));
+  for (auto &pos : edge_pos) {
+    int r = pos.first, c = pos.second;
+    double gx = grad_x(r, c), gy = grad_y(r, c);
+    double dx = gx / sqrt(gx * gx + gy * gy), dy = gy / sqrt(gx * gx + gy * gy);
+
+    dest << r << " " << c << " " << dx << " " << dy << std::endl;
+
+    if (int(r + dy * max_step) >= img_eigen.rows() || int(r + dy * max_step) < 0
+        || int(c + dx * max_step) >= img_eigen.cols() || int(c + dx * max_step) < 0)
+      continue;
+    for (int i = max_step; i >= 0; i -= step_size) {
+      int r_sample = r + dy * i, c_sample = c + dx * i;
+      double sample_value = img_eigen(r_sample, c_sample);
+      dest << sample_value << " ";
+    }
+//    dest << std::endl;
+
+    cv::Point start(c, r);
+    cv::Point end(c + dx * 10, r + dy * 10);
+    cv::line(filtered_canny_img, start, end, CV_RGB(255, 0, 0));
+    filtered_canny_img.at<cv::Vec3b>(r, c) = cv::Vec3b(255, 255, 255);
+
+  }
+  dest.close();
+  counter++;
+  cv::imshow("grad", filtered_canny_img);
+  cv::waitKey(0);
 }
 
 int main() {
@@ -52,9 +86,12 @@ int main() {
 //  std::cout << grad_mag << std::endl;
 
 
-  cv::Mat img_neutral = cv::imread("/home/mpl/data/EVIT/result/robot_fast_result/neutral/1642661814.401115.jpg", cv::IMREAD_GRAYSCALE);
-  cv::Mat img_positive = cv::imread("/home/mpl/data/EVIT/result/robot_fast_result/positive/1642661814.401115.jpg", cv::IMREAD_GRAYSCALE);
-  cv::Mat img_negative = cv::imread("/home/mpl/data/EVIT/result/robot_fast_result/negative/1642661814.401115.jpg", cv::IMREAD_GRAYSCALE);
+  cv::Mat img_neutral =
+      cv::imread("/home/mpl/data/EVIT/result/robot_fast_result/neutral/1642661814.716115.jpg", cv::IMREAD_GRAYSCALE);
+  cv::Mat img_positive =
+      cv::imread("/home/mpl/data/EVIT/result/robot_fast_result/positive/1642661814.716115.jpg", cv::IMREAD_GRAYSCALE);
+  cv::Mat img_negative =
+      cv::imread("/home/mpl/data/EVIT/result/robot_fast_result/negative/1642661814.716115.jpg", cv::IMREAD_GRAYSCALE);
 //  cv::threshold(img_neutral, img_neutral, 50, 255, cv::THRESH_TOZERO);
 //  cv::threshold(img_positive, img_positive, 50, 255, cv::THRESH_TOZERO);
 //  cv::threshold(img_negative, img_negative, 50, 255, cv::THRESH_TOZERO);
@@ -68,15 +105,14 @@ int main() {
   build_canny(img_positive, edge_pos_positive, edge_positive);
   build_canny(img_negative, edge_pos_negative, edge_negative);
 
-
   cv::imshow("img_neutral", img_neutral);
   cv::imshow("img_positive", img_positive);
   cv::imshow("img_negative", img_negative);
 
   cv::Mat canny_img = cv::Mat(img_positive.rows, img_positive.cols, CV_8U, cv::Scalar(0));
-  for (auto& pos: edge_pos_positive)
+  for (auto &pos : edge_pos_positive)
     canny_img.at<uint8_t>(pos.first, pos.second) = 255;
-  for (auto& pos: edge_pos_negative)
+  for (auto &pos : edge_pos_negative)
     canny_img.at<uint8_t>(pos.first, pos.second) = 255;
   cv::imshow("edge_neutral", edge_neutral);
   cv::imshow("edge_positive", edge_positive);
@@ -92,7 +128,6 @@ int main() {
 //  cv::imshow("edge_polyview", edge_polyview);
 //  cv::imshow("distance_field_matrix", distance_field_cv);
 //  cv::waitKey(0);
-
 
 
 
