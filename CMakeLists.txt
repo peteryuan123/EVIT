@@ -41,7 +41,7 @@ set(SRC_FILE
         src/CeresFactor/EventFactor.cpp
         src/CeresFactor/EventAutoDIff.cpp
 
-        src/Manifold/PoseLocalParameterization.cpp
+        # src/Manifold/PoseLocalParameterization.cpp
         src/Manifold/PoseLocalManifold.cpp
 
         src/EigenOptimization/Factor/ResidualEventItem.cpp
@@ -71,7 +71,7 @@ set(INCLUDE_FILE
         include/CeresFactor/EventFactor.h
         include/CeresFactor/EventAutoDiffFactor.h
 
-        include/Manifold/PoseLocalParameterization.h
+        # include/Manifold/PoseLocalParameterization.h
         include/Manifold/PoseLocalManifold.h
 
         include/EigenOptimization/Factor/ResidualEventItem.h

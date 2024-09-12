@@ -1,0 +1,146 @@
+%YAML:1.0
+---
+################### System ###################
+start_time: 1642661139.036530
+
+
+R0: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [9.44132892e-01, -3.20115579e-02, 3.28006832e-01,
+         1.33518692e-02, 9.98170096e-01, 5.89837865e-02 , 
+         -3.29294905e-01, -5.13096053e-02, 9.42831880e-01]
+V0: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [0.0, 0.0, 0.0]
+
+t0: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [-4.31203645e-03, -2.71846198e-03, 1.50419013e-04]
+
+
+
+# R0: !!opencv-matrix
+#    rows: 3
+#    cols: 3
+#    dt: d
+#    data: [0.79564714,  0.3022662 ,  0.52495791,
+#          -0.33379139,  0.94194182, -0.036454276, 
+#          -0.50549867, -0.14622173,  0.85034713]
+# V0: !!opencv-matrix
+#    rows: 3
+#    cols: 1
+#    dt: d
+#    data: [0.0, 0.0, 0.0]
+
+# t0: !!opencv-matrix
+#    rows: 3
+#    cols: 1
+#    dt: d
+#    data: [0.27862467, 0.65843449, 0.02992707]
+
+cloud_path: "/home/yuanicg/code/CANNY_EVIT/cloud/Robot.txt"
+result_path: "/home/yuanicg/data/EVIT/result/robot_normal_result/"
+timeSurface_decay_factor: 60.0e-3
+timeSurface_truncate_threshold: 0.0
+imu_num_for_frame: 7
+window_size: 5
+
+frame_num_for_init: 5
+imu_num_for_init_frame: 5
+init_freq: 30 # hz
+min_num_events_for_frame: 20000
+min_num_imu_for_frame: 3
+################### Event Camera ###################
+height: 480
+width: 640
+distortion_model: "plumb_bob" # equidistant
+K: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 327.32749,    0.     ,  304.97749,
+         0.     ,  327.46184,  235.37621,
+         0.     ,    0.     ,    1.     ]
+distortion: !!opencv-matrix
+   rows: 5
+   cols: 1
+   dt: d
+   data: [-0.031982, 0.041966, -0.000507, -0.001031, 0.000000]
+
+# P: !!opencv-matrix
+#    rows: 3
+#    cols: 4
+#    dt: d
+#    data: [ 339.69174,    0.     ,  305.8753 ,    0.     ,
+#             0.     ,  340.96127,  235.33929,    0.     ,
+#             0.     ,    0.     ,    1.     ,    0.     ]
+P: !!opencv-matrix
+   rows: 3
+   cols: 4
+   dt: d
+   data: [ 327.32749,    0.     ,  304.97749 ,    0.     ,
+            0.     ,  327.46184,  235.37621,    0.     ,
+            0.     ,    0.     ,    1.     ,    0.     ]
+
+Rbc: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [0.01120354,  0.0218441 ,  0.99969861,
+         -0.99976045, -0.01855423,  0.01160966,  
+          0.01880224, -0.9995892 ,  0.021631]
+tbc: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [0.12907465,  0.07967281, 0.025]
+
+# Rbc: !!opencv-matrix
+#    rows: 3
+#    cols: 3
+#    dt: d
+#    data: [ 0., 0., 1.,
+#          -1., 0., 0.,
+#          0., -1., 0.]
+
+# tbc: !!opencv-matrix
+#    rows: 3
+#    cols: 1
+#    dt: d
+#    data: [ 0.10308037, 0.0825, 0.025]
+
+
+
+################### imu parameter ###################
+acc_n: 0.12655720309610252         # accelerometer measurement noise standard deviation.
+gyr_n: 0.07294729852113113         # gyroscope measurement noise standard deviation.
+acc_w: 5.6386016813618435e-03      # accelerometer bias random work noise standard deviation.
+gyr_w: 6.996094830870257e-04       # gyroscope bias random work noise standard deviation.
+g_norm: 9.81     # gravity magnitude
+
+
+
+################### optimizer ###################
+patch_size_X: 3
+patch_size_Y: 3
+field_type: "inv_time_surface" # "distance_field" or "inv_time_surface"
+polarity_prediction: 0 #bool
+batch_size: 300
+max_registration_point: 5000
+
+################### GLOG ###################
+log_dir: ""
+log_color: 1
+log_also_to_stderr: 1
+
+
+
+################### Viewer ###################
+point_size: 1
+frame_size: 0.02

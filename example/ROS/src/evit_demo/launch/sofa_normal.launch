@@ -1,5 +1,5 @@
 <launch>
-    <arg name="config_path" default="/home/mpl/data/EVIT/config/sofa_normal.yaml"/>
+    <arg name="config_path" default="$(find evit_demo)/config/sofa_normal.yaml"/>
     <arg name="imu_topic" default="/imu/data"/>
     <arg name="event_topic" default="/prophesee/left/events"/>
 

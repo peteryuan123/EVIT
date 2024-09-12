@@ -18,7 +18,7 @@ endif()
 
 catkin_package(
  LIBRARIES src
- CATKIN_DEPENDS rosbag tf2_ros  pcl_conversions roscpp std_msgs sensor_msgs geometry_msgs prophesee_event_msgs image_transport
+ CATKIN_DEPENDS rosbag roscpp std_msgs sensor_msgs geometry_msgs prophesee_event_msgs image_transport
 # DEPENDS system_lib
 )
 
@@ -27,9 +27,9 @@ include_directories(${Pangolin_INCLUDE_DIRS})
 
 find_package(catkin REQUIRED COMPONENTS
         rosbag
-        tf2_ros
+        # tf2_ros
 #        cv_bridge
-        pcl_conversions
+        # pcl_conversions
         roscpp
         std_msgs
         sensor_msgs

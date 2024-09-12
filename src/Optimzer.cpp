@@ -14,7 +14,7 @@
 #include "CeresFactor/EventFactor.h"
 #include "CeresFactor/ImuFactor.h"
 #include "Manifold/PoseLocalManifold.h"
-#include "Manifold/PoseLocalParameterization.h"
+// #include "Manifold/PoseLocalParameterization.h"
 
 #include "EigenOptimization/Problem/EventProblem.h"
 #include "EigenOptimization/Problem/SlidingWindowProblem.h"

@@ -1,5 +1,5 @@
 <launch>
-    <arg name="config_path" default="/home/mpl/data/EVIT/config/robot_fast.yaml"/>
+    <arg name="config_path" default="$(find evit_demo)/config/robot_fast.yaml"/>
     <arg name="imu_topic" default="/imu/data"/>
     <arg name="event_topic" default="/prophesee/left/events"/>
 
