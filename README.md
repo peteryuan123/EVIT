@@ -17,6 +17,9 @@ This repo is the implementation of
         journal={arXiv preprint arXiv:2408.01370},
         year={2024}
     }
+**Video:**
+
+https://github.com/user-attachments/assets/312d7451-6abe-410a-b103-bd948e7a6da2
 
 ## 1. Prerequisites
 The code is tested on Ubuntu 20.04 with ROS noetic using cpp standard 17.
