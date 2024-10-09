@@ -89,6 +89,7 @@ class System {
   bool is_first_frame_;
   bool is_step_by_step_;
   bool step_;
+  bool is_use_batch_optimization;
   State state_;
 
   // frame

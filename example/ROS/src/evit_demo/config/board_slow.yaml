@@ -102,6 +102,7 @@ field_type: "inv_time_surface" # "distance_field" or "inv_time_surface"
 polarity_prediction: 0 #bool
 batch_size: 300
 max_registration_point: 7000
+use_batch_optimization: 0
 
 ################### GLOG ###################
 log_dir: ""

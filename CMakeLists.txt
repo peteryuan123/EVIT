@@ -12,6 +12,7 @@ else()
 endif()
 
 add_definitions(-D_LOG_ALL)
+add_compile_options(-Wall)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare")
 
 find_package(Eigen3 REQUIRED)

@@ -22,22 +22,22 @@ t0: !!opencv-matrix
    rows: 3
    cols: 1
    dt: d
-   data: [ 0.06706733, -0.10548566, 0.09692412]
+   data: [ 0.03706733, -0.10548566, 0.09692412]
 
 
 
 cloud_path: "/home/yuanicg/code/CANNY_EVIT/cloud/Desk_normal.txt"
 result_path: "/home/yuanicg/data/EVIT/result/desk_normal_result/"
-timeSurface_decay_factor: 30.0e-3
-timeSurface_truncate_threshold: 80.0
+timeSurface_decay_factor: 50.0e-3
+timeSurface_truncate_threshold: 50.0
 imu_num_for_frame: 7
-window_size: 5
+window_size: 7
 
 frame_num_for_init: 5
 imu_num_for_init_frame: 5
 init_freq: 30 # hz
-min_num_events_for_frame: 30000
-min_num_imu_for_frame: 4
+min_num_events_for_frame: 40000
+min_num_imu_for_frame: 5
 ################### Event Camera ###################
 height: 480
 width: 640
@@ -100,8 +100,9 @@ patch_size_X: 1
 patch_size_Y: 1
 field_type: "inv_time_surface" # "distance_field" or "inv_time_surface"
 polarity_prediction: 0 #bool
-batch_size: 300
-max_registration_point: 3000
+batch_size: 800
+max_registration_point: 5000
+use_batch_optimization: 0
 
 ################### GLOG ###################
 log_dir: ""

@@ -112,6 +112,9 @@ void System::readParam(const std::string &config_path) {
 
     if (fs["min_num_imu_for_frame"].isNone()) LOG(ERROR) << "config: min_num_imu_for_frame is not set";
     min_num_imu_for_frame_ = static_cast<int>(fs["min_num_imu_for_frame"]);
+    
+    if (fs["use_batch_optimization"].isNone()) LOG(ERROR) << "config: use_batch_optimization is not set";
+    is_use_batch_optimization = static_cast<int>(fs["use_batch_optimization"]);
 
     if (fs["field_type"].isNone()) LOG(ERROR) << "config: field_type is not set";
     if (fs["field_type"].string() == "distance_field")
@@ -323,8 +326,12 @@ void System::Track(CannyEVIT::FrameData &frame_data) {
       cur_frame->time_surface_observation_->drawCloud(cloud_, last_frame_->Twc(), "last_frame");
       cur_frame->time_surface_observation_->drawCloud(cloud_, cur_frame->Twc(), "pred_frame");
 
-//      optimizer_->OptimizeSlidingWindowProblemCeresBatch(cloud_, sliding_window_);
-      optimizer_->OptimizeSlidingWindowProblemCeres(cloud_, sliding_window_);
+      if (is_use_batch_optimization){
+        optimizer_->OptimizeSlidingWindowProblemCeresBatch(cloud_, sliding_window_);
+      }
+      else{
+        optimizer_->OptimizeSlidingWindowProblemCeres(cloud_, sliding_window_);
+      }
 
       // for visualization
       {

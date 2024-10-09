@@ -8,9 +8,9 @@ R0: !!opencv-matrix
    rows: 3
    cols: 3
    dt: d
-   data: [-0.06783485,  0.99757031,  0.01587146, 
-         -0.81167277, -0.04592928, -0.58230389,  
-         -0.58016011, -0.05238292,  0.81281627]
+   data: [ -0.0830776,  0.9963967,  0.0170793,
+            -0.8201773, -0.0586298, -0.5690973,
+            -0.5660454, -0.0612873,  0.8220928 ]
          
 V0: !!opencv-matrix
    rows: 3
@@ -22,7 +22,7 @@ t0: !!opencv-matrix
    rows: 3
    cols: 1
    dt: d
-   data: [-0.01948688, 0.11121025, 0.10016538]
+   data: [0.04308, 0.11386, 0.04570]
 
 
 
@@ -96,8 +96,9 @@ patch_size_X: 1
 patch_size_Y: 1
 field_type: "inv_time_surface" # "distance_field" or "inv_time_surface"
 polarity_prediction: 0 #bool
-batch_size: 300
+batch_size: 800
 max_registration_point: 8000
+use_batch_optimization: 0
 
 
 ################### GLOG ###################
