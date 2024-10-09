@@ -1,7 +1,7 @@
-# EVIT: Event-based Visual-Inertial Tracking in Semi-Dense Maps Using Windowed Nonlinear Optimization
+# [IROS'24]EVIT: Event-based Visual-Inertial Tracking in Semi-Dense Maps Using Windowed Nonlinear Optimization
 
 
-This repo is the implementation of 
+This repo is the implementation of our IROS'24 contribution 
 
 [**EVIT: Event-based Visual-Inertial Tracking in Semi-Dense Maps Using Windowed Nonlinear Optimization**](https://arxiv.org/abs/2408.01370).
 
@@ -17,6 +17,9 @@ This repo is the implementation of
         journal={arXiv preprint arXiv:2408.01370},
         year={2024}
     }
+**Video:**
+
+https://github.com/user-attachments/assets/312d7451-6abe-410a-b103-bd948e7a6da2
 
 ## 1. Prerequisites
 The code is tested on Ubuntu 20.04 with ROS noetic using cpp standard 17.
