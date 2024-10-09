@@ -19,7 +19,7 @@ This repo is the implementation of our IROS'24 contribution
     }
 **Video:**
 
-https://github.com/user-attachments/assets/312d7451-6abe-410a-b103-bd948e7a6da2
+https://github.com/user-attachments/assets/1efee3f4-3133-417a-866c-e1877b50590c
 
 ## 1. Prerequisites
 The code is tested on Ubuntu 20.04 with ROS noetic using cpp standard 17.
